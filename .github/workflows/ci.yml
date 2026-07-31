@@ -12,6 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build Engine (WASM)
+        run: cd engine && wasm-pack build --target web
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -30,15 +40,3 @@ jobs:
           go-version: '1.24'
       - run: cd backend && go build -v ./...
       # Future: go test -v ./...
-
-  engine:
-    name: Build Engine (WASM)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
-      - run: cd engine && cargo check --target wasm32-unknown-unknown
