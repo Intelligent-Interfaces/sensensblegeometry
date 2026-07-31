@@ -40,3 +40,15 @@ jobs:
           go-version: '1.24'
       - run: cd backend && go build -v ./...
       # Future: go test -v ./...
+
+  ml:
+    name: Test ML Copilot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: cd ml && pip install -r requirements.txt
+      - run: cd ml && python -c "import main"
