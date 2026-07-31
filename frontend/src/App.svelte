@@ -1,89 +1,102 @@
-<script>
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from './assets/vite.svg'
-  import heroImg from './assets/hero.png'
-  import Counter from './lib/Counter.svelte'
+<script lang="ts">
+  import Canvas from './lib/Canvas.svelte';
+  import Notebook from './lib/Notebook.svelte';
 </script>
 
-<section id="center">
-  <div class="hero">
-    <img src={heroImg} class="base" width="170" height="179" alt="" />
-    <img src={svelteLogo} class="framework" alt="Svelte logo" />
-    <img src={viteLogo} class="vite" alt="Vite logo" />
+<main class="layout">
+  <header class="topbar">
+    <h1>Sensensble Geometry Lab</h1>
+    <div class="controls">
+      <button>Connect ML Copilot</button>
+      <button>Sync Engine</button>
+    </div>
+  </header>
+  
+  <div class="workspace">
+    <section class="pane canvas-pane">
+      <Canvas />
+    </section>
+    
+    <div class="divider"></div>
+    
+    <section class="pane notebook-pane">
+      <Notebook />
+    </section>
   </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/App.svelte</code> and save to test <code>HMR</code></p>
-  </div>
-  <Counter />
-</section>
+</main>
 
-<div class="ticks"></div>
+<style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    background-color: #0d0d12;
+    color: #fff;
+    font-family: system-ui, -apple-system, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+  }
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true">
-      <use href="/icons.svg#documentation-icon"></use>
-    </svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank" rel="noreferrer">
-          <img class="logo" src={viteLogo} alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://svelte.dev/" target="_blank" rel="noreferrer">
-          <img class="button-icon" src={svelteLogo} alt="" />
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true">
-      <use href="/icons.svg#social-icon"></use>
-    </svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li>
-        <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#github-icon"></use>
-          </svg>
-          GitHub
-        </a>
-      </li>
-      <li>
-        <a href="https://chat.vite.dev/" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#discord-icon"></use>
-          </svg>
-          Discord
-        </a>
-      </li>
-      <li>
-        <a href="https://x.com/vite_js" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#x-icon"></use>
-          </svg>
-          X.com
-        </a>
-      </li>
-      <li>
-        <a href="https://bsky.app/profile/vite.dev" target="_blank" rel="noreferrer">
-          <svg class="button-icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#bluesky-icon"></use>
-          </svg>
-          Bluesky
-        </a>
-      </li>
-    </ul>
-  </div>
-</section>
+  .layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
 
-<div class="ticks"></div>
-<section id="spacer"></section>
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    height: 50px;
+    background-color: #16161e;
+    border-bottom: 1px solid #2a2a35;
+  }
+
+  .topbar h1 {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .controls button {
+    background-color: #2a2a35;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    margin-left: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s;
+  }
+
+  .controls button:hover {
+    background-color: #3b3b4d;
+  }
+
+  .workspace {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pane {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .canvas-pane {
+    flex: 6; /* 60% width */
+  }
+
+  .notebook-pane {
+    flex: 4; /* 40% width */
+  }
+
+  .divider {
+    width: 4px;
+    background-color: #2a2a35;
+    cursor: col-resize;
+  }
+</style>
