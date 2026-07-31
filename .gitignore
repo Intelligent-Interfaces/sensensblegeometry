@@ -1,0 +1,37 @@
+# General
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Frontend (Svelte/Vite/Node)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.svelte-kit/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Backend (Go)
+backend/sensensblegeometry-backend
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/*.test
+backend/*.out
+
+# Engine (Rust)
+engine/target/
+**/*.rs.bk
+
+# ML Copilot (Python)
+ml/venv/
+ml/env/
+ml/__pycache__/
+ml/*.py[cod]
+ml/*$py.class
+ml/.pytest_cache/
