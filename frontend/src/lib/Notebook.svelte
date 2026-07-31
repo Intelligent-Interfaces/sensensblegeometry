@@ -1,18 +1,50 @@
 <script lang="ts">
-  // Future: CodeMirror 6 and jupyter-kit integration
+  import { onMount, onDestroy } from 'svelte';
+  import { basicSetup } from 'codemirror';
+  import { EditorView } from '@codemirror/view';
+  import { EditorState } from '@codemirror/state';
+  import { python } from '@codemirror/lang-python';
+  import { oneDark } from '@codemirror/theme-one-dark';
+
+  let editorElement: HTMLDivElement;
+  let view: EditorView;
+
+  // The code state (which will eventually sync with the ML copilot)
+  let code = `import "engine"\n\n# Analytical copilot environment\ndef analyze_geometry(node):\n    return node.calculate_flux()`;
+
+  onMount(() => {
+    let startState = EditorState.create({
+      doc: code,
+      extensions: [
+        basicSetup,
+        python(),
+        oneDark,
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            code = update.state.doc.toString();
+          }
+        })
+      ]
+    });
+
+    view = new EditorView({
+      state: startState,
+      parent: editorElement
+    });
+  });
+
+  onDestroy(() => {
+    if (view) {
+      view.destroy();
+    }
+  });
 </script>
 
 <div class="notebook-container">
   <div class="header">
     <h2>Analytical Notebook</h2>
   </div>
-  <div class="editor-placeholder">
-    <div class="line"><span class="keyword">import</span> <span class="string">"engine"</span></div>
-    <div class="line"> </div>
-    <div class="line"><span class="comment"># Analytical copilot environment</span></div>
-    <div class="line"><span class="keyword">def</span> <span class="function">analyze_geometry</span>(node):</div>
-    <div class="line">    <span class="keyword">return</span> node.calculate_flux()</div>
-  </div>
+  <div class="editor-host" bind:this={editorElement}></div>
 </div>
 
 <style>
@@ -21,32 +53,27 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
-    font-family: 'Fira Code', monospace;
+    background-color: #282c34; /* One Dark background */
   }
   .header {
     padding: 15px 20px;
-    background-color: #252526;
-    border-bottom: 1px solid #333;
+    background-color: #21252b;
+    border-bottom: 1px solid #181a1f;
   }
   h2 {
     margin: 0;
+    color: #abb2bf;
     font-family: system-ui, sans-serif;
     font-size: 1rem;
     font-weight: 500;
   }
-  .editor-placeholder {
-    padding: 20px;
+  .editor-host {
     flex-grow: 1;
     overflow-y: auto;
-  }
-  .line {
-    margin-bottom: 4px;
     font-size: 14px;
   }
-  .keyword { color: #569cd6; }
-  .string { color: #ce9178; }
-  .comment { color: #6a9955; }
-  .function { color: #dcdcaa; }
+  /* CodeMirror creates its own scrolling container, we want it to fill the height */
+  :global(.cm-editor) {
+    height: 100%;
+  }
 </style>
