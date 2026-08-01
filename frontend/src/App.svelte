@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import Canvas from './lib/Canvas.svelte';
   import Notebook from './lib/Notebook.svelte';
+  import GuidedTour from './lib/GuidedTour.svelte';
+  import { tourState } from './lib/tourState.svelte';
   import katex from 'katex';
   import 'katex/dist/katex.min.css';
 
@@ -24,6 +26,52 @@
 
   function switchStage(id: number) {
     activeStage = id;
+  }
+
+  function startBivectorTour() {
+    activeStage = 1; // Ensure canvas is active
+    
+    // We dispatch an event or call a method on canvas if we could, 
+    // but the easiest way is to let the autoAction push states to the canvas directly, 
+    // or just tell the user to click things. Since we want auto spawning, we'll let Canvas listen to tourState or emit events.
+    // Wait, the easiest way is for autoAction to just find the button and click it!
+    tourState.startTour([
+      {
+        title: 'The Birth of a Bivector',
+        text: 'Welcome to Cl(3,0). Let’s build some geometry from scratch. First, we need an empty canvas.',
+        autoAction: () => document.getElementById('clear-btn')?.click()
+      },
+      {
+        title: 'Vector e₁',
+        text: 'Let’s spawn a 1D vector along the X axis (e₁). Watch the canvas.',
+        autoAction: () => document.getElementById('add-vec-x')?.click()
+      },
+      {
+        title: 'Vector e₂',
+        text: 'Now let’s add a second vector along the Y axis (e₂).',
+        autoAction: () => document.getElementById('add-vec-y')?.click()
+      },
+      {
+        title: 'Creating the Plane',
+        text: 'In Geometric Algebra, we multiply vectors to create higher-dimensional objects. Click the highlighted Wedge button to form an oriented plane!',
+        actionRequired: 'wedge_clicked',
+        highlightElement: 'btn-wedge'
+      },
+      {
+        title: 'The e₁₂ Bivector',
+        text: 'Boom. You just created the e₁₂ bivector. It represents the oriented area swept out by moving e₁ along e₂. It is a fundamental piece of the plane.'
+      },
+      {
+        title: 'Taking the Dual',
+        text: 'What if we want the normal vector to this plane? In Cl(3,0), multiplying by the inverse pseudoscalar (-e₁₂₃) flips dimensions. Click Dual!',
+        actionRequired: 'dual_clicked',
+        highlightElement: 'btn-dual'
+      },
+      {
+        title: 'The Normal Vector',
+        text: 'Amazing! The dual of the e₁₂ plane is the e₃ vector (the Z-axis normal). You are now manipulating geometry natively.'
+      }
+    ]);
   }
 </script>
 
@@ -53,11 +101,14 @@
           {stage.label}
         </button>
       {/each}
+      <button class="tour-btn" onclick={startBivectorTour}>🎓 Interactive Tour</button>
     </nav>
   </header>
 
   <!-- ═══ Workspace ═══ -->
   <div class="workspace">
+    <GuidedTour />
+    
     <section class="pane canvas-pane" class:hidden={activeStage !== 1}>
       <Canvas />
     </section>
@@ -183,6 +234,28 @@
   .stage-tab.active .badge {
     background: var(--accent-vis);
     color: #fff;
+  }
+
+  .tour-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin-left: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: #fff;
+    background: linear-gradient(135deg, #61afef, #c678dd);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .tour-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(198, 120, 221, 0.3);
   }
 
   /* ── Workspace ── */

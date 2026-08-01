@@ -3,6 +3,7 @@
   import init, { Multivector, SimulationState } from 'engine';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+  import { tourState } from './tourState.svelte';
 
   let canvasElement: HTMLDivElement;
   let simState: SimulationState;
@@ -147,7 +148,6 @@
 
       renderer.render(scene, camera);
     };
-
     animate();
 
     const handleResize = () => {
@@ -181,7 +181,10 @@
       
       let result;
       if (type === 'geometric') result = a.geometric_product(b);
-      else if (type === 'wedge') result = a.wedge(b);
+      else if (type === 'wedge') {
+        result = a.wedge(b);
+        tourState.reportAction('wedge_clicked');
+      }
       else if (type === 'inner') result = a.inner(b);
       
       if (result) simState.add_object(result);
@@ -194,6 +197,7 @@
       const a = simState.get_object(n - 1);
       const result = a.dual();
       simState.add_object(result);
+      tourState.reportAction('dual_clicked');
     }
   };
 
@@ -217,9 +221,9 @@
     
     <div class="op-grid">
       <button class="primary" onclick={() => computeProduct('geometric')}>Geometric (ab)</button>
-      <button class="primary" onclick={() => computeProduct('wedge')}>Wedge (a ∧ b)</button>
+      <button id="btn-wedge" class="primary" class:pulsing={tourState.currentStep?.highlightElement === 'btn-wedge'} onclick={() => computeProduct('wedge')}>Wedge (a ∧ b)</button>
       <button class="primary" onclick={() => computeProduct('inner')}>Inner (a · b)</button>
-      <button class="primary" onclick={computeDual}>Dual (a*)</button>
+      <button id="btn-dual" class="primary" class:pulsing={tourState.currentStep?.highlightElement === 'btn-dual'} onclick={computeDual}>Dual (a*)</button>
     </div>
 
     <button id="clear-btn" class="danger" style="margin-top: 4px;" onclick={clearCanvas}>Clear Canvas</button>
@@ -337,6 +341,20 @@
   button.danger:hover {
     background: #dc2626;
     color: white;
+  }
+
+  /* ── Pulse animation for tour highlights ── */
+  button.pulsing {
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 0 0 rgba(198, 120, 221, 0.7);
+    border-color: #c678dd;
+    color: #c678dd;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(198, 120, 221, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(198, 120, 221, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(198, 120, 221, 0); }
   }
 
   /* ── Blade Toggles ── */
