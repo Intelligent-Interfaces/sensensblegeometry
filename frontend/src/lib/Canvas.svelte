@@ -139,7 +139,7 @@
       if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
+      renderer.setSize(w, h);
     });
     
     resizeObserver.observe(canvasElement);
