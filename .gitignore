@@ -37,3 +37,12 @@ ml/*$py.class
 ml/.pytest_cache/
 backend/worker/venv/
 __pycache__/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+
