@@ -35,6 +35,42 @@
   let isOpen = $state(false); // Default to closed so you just see the math footer
   let showMath = $state(true);
   
+  let drawerHeight = $state(45);
+  let isDragging = $state(false);
+  let hasDragged = false;
+
+  function startDrag(e: MouseEvent) {
+    isDragging = true;
+    hasDragged = false;
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', stopDrag);
+    if (!isOpen) isOpen = true;
+    e.stopPropagation();
+  }
+
+  function onDrag(e: MouseEvent) {
+    if (!isDragging) return;
+    hasDragged = true;
+    let newHeight = ((window.innerHeight - e.clientY) / window.innerHeight) * 100;
+    if (newHeight < 20) newHeight = 20;
+    if (newHeight > 85) newHeight = 85;
+    drawerHeight = newHeight;
+  }
+
+  function stopDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+    // Reset hasDragged after a tiny delay so the click handler can still read it
+    setTimeout(() => { hasDragged = false; }, 50);
+  }
+
+  function toggleDrawer() {
+    if (!hasDragged) {
+      isOpen = !isOpen;
+    }
+  }
+  
   let languageConf = new Compartment();
   let currentLang = $state<'r' | 'python'>('r');
 
@@ -127,8 +163,10 @@
   <!-- Math Readout / Drawer Handle -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div id="math-header" class="math-header" class:pulsing={tourState.currentStep?.highlightElement === 'math-header'} onclick={() => isOpen = !isOpen}>
-    <div class="drag-handle"></div>
+  <div id="math-header" class="math-header" class:pulsing={tourState.currentStep?.highlightElement === 'math-header'} onclick={toggleDrawer}>
+    <div class="drag-handle-zone" onmousedown={startDrag}>
+      <div class="drag-handle"></div>
+    </div>
     <div class="header-top">
       <nav class="stage-nav" onclick={(e) => e.stopPropagation()}>
         {#each stages as stage}
@@ -161,7 +199,7 @@
       <p class="eq-caption">{caption}</p>
     {/if}
   </div>
-  <div class="notebook-content">
+  <div class="notebook-content" style="height: {isOpen ? drawerHeight + 'vh' : '0'}; opacity: {isOpen ? '1' : '0'};">
     <div class="notebook-body">
       {#if activeStage === 1}
         <div class="canvas-controls">
@@ -253,6 +291,16 @@
     100% { transform: scale(1); box-shadow: inset 0 0 0 2px rgba(198, 120, 221, 0); }
   }
 
+  .drag-handle-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 16px;
+    cursor: ns-resize;
+    z-index: 10;
+  }
+
   .drag-handle {
     width: 40px;
     height: 4px;
@@ -263,6 +311,12 @@
     top: 6px;
     left: 50%;
     transform: translateX(-50%);
+    transition: opacity 0.2s, background 0.2s;
+  }
+
+  .drag-handle-zone:hover .drag-handle {
+    opacity: 0.8;
+    background: var(--text-main);
   }
 
   .stage-nav {
@@ -344,12 +398,11 @@
   }
 
   .notebook-content {
-    height: 45vh;
-    opacity: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+    /* Removed transition: height here so dragging is instant. Using CSS var or inline style for height. */
+    transition: opacity 0.2s;
   }
   
   .notebook-body {
@@ -376,10 +429,7 @@
     overflow: hidden;
   }
 
-  .bottom-drawer.collapsed .notebook-content {
-    height: 0;
-    opacity: 0;
-  }
+  /* bottom-drawer.collapsed .notebook-content rule removed since we use inline styles */
 
   .header-top {
     display: flex;
