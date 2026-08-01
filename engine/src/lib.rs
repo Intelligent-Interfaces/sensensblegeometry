@@ -110,4 +110,8 @@ impl SimulationState {
     pub fn get_object(&self, index: usize) -> Multivector {
         self.objects[index]
     }
+
+    pub fn clear(&mut self) {
+        self.objects.clear();
+    }
 }
