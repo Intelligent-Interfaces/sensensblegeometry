@@ -36,3 +36,4 @@ ml/*.py[cod]
 ml/*$py.class
 ml/.pytest_cache/
 backend/worker/venv/
+__pycache__/
