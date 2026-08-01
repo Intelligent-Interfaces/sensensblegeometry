@@ -10,8 +10,7 @@
 
   const stages = [
     { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
-    { id: 2, label: 'Analytical Notebook', katex: String.raw`R = e^{-\frac{\theta}{2} B}`, caption: 'Rotors sandwich-multiply vectors to apply GA rotations: RxR̃.' },
-    { id: 3, label: 'ML Copilot', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
+    { id: 2, label: 'ML Copilot', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
   ];
 
   let mathFooterEl: HTMLElement;
@@ -63,11 +62,10 @@
       <Canvas />
     </section>
 
-    <section class="pane notebook-pane" class:hidden={activeStage !== 2}>
-      <Notebook />
-    </section>
+    <!-- Floating Notebook overlay -->
+    <Notebook />
 
-    <section class="pane copilot-pane" class:hidden={activeStage !== 3}>
+    <section class="pane copilot-pane" class:hidden={activeStage !== 2}>
       <div class="placeholder-pane">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fuse)" stroke-width="1.5">
           <path d="M12 2a10 10 0 1 0 10 10"/>
