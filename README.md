@@ -32,7 +32,7 @@ cd engine
 cargo build --target wasm32-unknown-unknown
 ```
 
-### ML Copilot
+### Geometric NC
 ```bash
 cd ml
 python3 -m venv venv

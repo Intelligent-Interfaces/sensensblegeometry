@@ -136,8 +136,8 @@
         });
       }
     } catch (e) {
-      console.error("Failed to connect to ML Copilot:", e);
-      const errTxt = currentLang === 'r' ? "# Error connecting to ML Copilot on port 8000\n# Please ensure FastAPI is running." : "# Error connecting to ML Copilot on port 8000\n# Please ensure FastAPI is running.";
+      console.error("Failed to connect to Geometric NC:", e);
+      const errTxt = currentLang === 'r' ? "# Error connecting to Geometric NC on port 8000\n# Please ensure FastAPI is running." : "# Error connecting to Geometric NC on port 8000\n# Please ensure FastAPI is running.";
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: errTxt }
       });

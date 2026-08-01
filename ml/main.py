@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from typing import List
 
 app = FastAPI(
-    title="ML Copilot Backend",
-    description="Python microservice for Generative Geometric Algebra simulations",
+    title="Geometric NC Backend",
+    description="Geometric Neural Computing (via Versor) backend for Sensensble Geometry",
     version="0.1.0"
 )
 

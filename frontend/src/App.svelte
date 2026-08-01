@@ -13,7 +13,7 @@
 
   const stages = [
     { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
-    { id: 2, label: 'ML Copilot', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
+    { id: 2, label: 'Geometric NC', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
   ];
 
   function switchStage(id: number) {
@@ -135,7 +135,7 @@
           <path d="M12 6v6l4 2"/>
           <circle cx="18" cy="6" r="3" fill="var(--accent-fuse)" opacity="0.3"/>
         </svg>
-        <p>ML Copilot — coming soon</p>
+        <p>Geometric NC — coming soon</p>
         <span>Equivariant neural networks for geometric predictions.</span>
       </div>
     </section>
