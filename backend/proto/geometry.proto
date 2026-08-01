@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package geometry;
 
-option go_package = "github.com/iig/sensensblegeometry/backend/gateway/proto";
+option go_package = "./proto";
 
 // A geometric multivector representing physical state
 message GeometricState {

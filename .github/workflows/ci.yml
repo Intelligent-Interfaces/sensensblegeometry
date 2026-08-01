@@ -42,7 +42,7 @@ jobs:
       # Future: go test -v ./...
 
   ml:
-    name: Test ML Copilot
+    name: Test ML Copilot Worker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,5 +50,5 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: cd ml && pip install -r requirements.txt
-      - run: cd ml && python -c "import main"
+      - run: cd backend/worker && pip install -r requirements.txt
+      - run: cd backend/worker && python -c "import main"
