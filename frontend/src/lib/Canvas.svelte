@@ -2,55 +2,81 @@
   import { onMount, onDestroy } from 'svelte';
   import init, { Multivector, SimulationState } from 'engine';
   import * as THREE from 'three';
+  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
   let canvasElement: HTMLDivElement;
   let simState: SimulationState;
-  
+
   let scene: THREE.Scene;
   let camera: THREE.PerspectiveCamera;
   let renderer: THREE.WebGLRenderer;
+  let controls: OrbitControls;
   let animationFrameId: number;
 
+  // Blade visibility state
+  let blades = $state({
+    e1: true,
+    e2: true,
+    e3: true,
+    e12: true,
+    e23: true,
+    e31: true,
+    e123: true,
+  });
+
+  const bladeLabels = [
+    { key: 'e1', label: 'e₁' },
+    { key: 'e2', label: 'e₂' },
+    { key: 'e3', label: 'e₃' },
+    { key: 'e12', label: 'e₁₂' },
+    { key: 'e23', label: 'e₂₃' },
+    { key: 'e31', label: 'e₃₁' },
+    { key: 'e123', label: 'e₁₂₃' },
+  ];
+
+  function toggleBlade(key: string) {
+    blades = { ...blades, [key]: !blades[key as keyof typeof blades] };
+  }
+
   onMount(async () => {
-    // Initialize the WebAssembly module
     await init();
-    console.log("WASM Engine initialized successfully");
-
-    // Initialize the simulation state
     simState = new SimulationState();
-    
-    // --- Three.js Setup ---
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1e1e1e);
 
-    // Set up camera
+    // ── Three.js Setup ──
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf8fafc); // light chassis
+
     const width = canvasElement.clientWidth;
     const height = canvasElement.clientHeight;
-    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.set(5, 5, 5);
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(4, 3, 5);
     camera.lookAt(0, 0, 0);
 
-    // Set up renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
     canvasElement.appendChild(renderer.domElement);
 
-    // Add basic lighting and grid
-    const gridHelper = new THREE.GridHelper(10, 10);
-    scene.add(gridHelper);
+    // OrbitControls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
 
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
+    // Grid & axes
+    const grid = new THREE.GridHelper(10, 10, 0xcbd5e1, 0xe2e8f0);
+    grid.position.y = -0.01;
+    scene.add(grid);
+    scene.add(new THREE.AxesHelper(3));
 
-    // Render loop
+    // ── Render loop ──
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+      controls.update();
 
-      // In a full physics loop, we would call simState.step() here
-      // For now, we just read the static objects from WASM memory and render them
-
-      // Clear previous math objects (inefficient, but works for PoC)
-      const toRemove = scene.children.filter(c => c instanceof THREE.ArrowHelper || c.userData?.isMathObject);
+      // Remove old math objects
+      const toRemove = scene.children.filter(
+        c => c instanceof THREE.ArrowHelper || (c as THREE.Mesh).userData?.isMathObject
+      );
       toRemove.forEach(c => {
         if ((c as THREE.Mesh).geometry) (c as THREE.Mesh).geometry.dispose();
         if ((c as THREE.Mesh).material) ((c as THREE.Mesh).material as THREE.Material).dispose();
@@ -58,63 +84,65 @@
       });
 
       if (simState) {
-          const count = simState.object_count();
-          for (let i = 0; i < count; i++) {
-            const obj = simState.get_object(i);
-            
-            const vx = obj.get_vector_x();
-            const vy = obj.get_vector_y();
-            const vz = obj.get_vector_z();
+        const count = simState.object_count();
+        for (let i = 0; i < count; i++) {
+          const obj = simState.get_object(i);
 
-            // 1. Vectors (1D Arrows)
-            if (Math.abs(vx) > 0.001 || Math.abs(vy) > 0.001 || Math.abs(vz) > 0.001) {
-              const dir = new THREE.Vector3(vx, vy, vz);
-              const length = dir.length();
-              dir.normalize();
-              const origin = new THREE.Vector3(0, 0, 0);
-              
-              // Color based on index for variety
-              const color = i % 3 === 0 ? 0xff3333 : (i % 3 === 1 ? 0x33ff33 : 0x3333ff);
-              const arrowHelper = new THREE.ArrowHelper(dir, origin, length, color);
-              scene.add(arrowHelper);
-            }
-            
-            // 2. Bivectors (Oriented 2D Areas)
-            const bxy = obj.get_bivector_xy();
-            const byz = obj.get_bivector_yz();
-            const bzx = obj.get_bivector_zx();
-            
-            if (Math.abs(bxy) > 0.001 || Math.abs(byz) > 0.001 || Math.abs(bzx) > 0.001) {
-              // Normal vector via dual: (byz, bzx, bxy)
-              const normal = new THREE.Vector3(byz, bzx, bxy);
-              const area = normal.length();
-              normal.normalize();
+          const vx = obj.get_vector_x();
+          const vy = obj.get_vector_y();
+          const vz = obj.get_vector_z();
 
-              // Scale radius by area
-              const radius = Math.sqrt(area / Math.PI);
-              const geometry = new THREE.CircleGeometry(radius, 32);
-              const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
-              const disk = new THREE.Mesh(geometry, material);
-              
-              disk.lookAt(normal);
-              disk.userData = { isMathObject: true };
-              scene.add(disk);
-            }
+          // 1. Vectors (1D Arrows)
+          const hasVec = Math.abs(vx) > 0.001 || Math.abs(vy) > 0.001 || Math.abs(vz) > 0.001;
+          const showVec = (blades.e1 && Math.abs(vx) > 0.001)
+                       || (blades.e2 && Math.abs(vy) > 0.001)
+                       || (blades.e3 && Math.abs(vz) > 0.001);
 
-            // 3. Trivectors (3D Volumes)
-            const tv = obj.get_trivector();
-            if (Math.abs(tv) > 0.001) {
-              const volume = Math.abs(tv);
-              const radius = Math.cbrt((volume * 3) / (4 * Math.PI));
-
-              const geometry = new THREE.SphereGeometry(radius, 32, 16);
-              const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.3 });
-              const sphere = new THREE.Mesh(geometry, material);
-              
-              sphere.userData = { isMathObject: true };
-              scene.add(sphere);
+          if (hasVec && showVec) {
+            const maskedVec = new THREE.Vector3(
+              blades.e1 ? vx : 0,
+              blades.e2 ? vy : 0,
+              blades.e3 ? vz : 0
+            );
+            if (maskedVec.length() > 0.001) {
+              const length = maskedVec.length();
+              maskedVec.normalize();
+              const colors = [0x0284c7, 0x0369a1, 0x38bdf8];
+              const arrow = new THREE.ArrowHelper(maskedVec, new THREE.Vector3(0, 0, 0), length, colors[i % 3], 0.15, 0.08);
+              scene.add(arrow);
             }
           }
+
+          // 2. Bivectors (Oriented 2D Areas)
+          const bxy = blades.e12 ? obj.get_bivector_xy() : 0;
+          const byz = blades.e23 ? obj.get_bivector_yz() : 0;
+          const bzx = blades.e31 ? obj.get_bivector_zx() : 0;
+
+          if (Math.abs(bxy) > 0.001 || Math.abs(byz) > 0.001 || Math.abs(bzx) > 0.001) {
+            const normal = new THREE.Vector3(byz, bzx, bxy);
+            const area = normal.length();
+            normal.normalize();
+            const radius = Math.sqrt(area / Math.PI);
+
+            const geo = new THREE.RingGeometry(radius * 0.15, radius, 32);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            const ring = new THREE.Mesh(geo, mat);
+            ring.lookAt(normal);
+            ring.userData = { isMathObject: true };
+            scene.add(ring);
+          }
+
+          // 3. Trivectors (3D Volumes)
+          const tv = blades.e123 ? obj.get_trivector() : 0;
+          if (Math.abs(tv) > 0.001) {
+            const radius = Math.cbrt((Math.abs(tv) * 3) / (4 * Math.PI));
+            const geo = new THREE.SphereGeometry(radius, 32, 16);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xea580c, transparent: true, opacity: 0.25 });
+            const sphere = new THREE.Mesh(geo, mat);
+            sphere.userData = { isMathObject: true };
+            scene.add(sphere);
+          }
+        }
       }
 
       renderer.render(scene, camera);
@@ -122,7 +150,6 @@
 
     animate();
 
-    // Handle resize
     const handleResize = () => {
       if (!canvasElement) return;
       const w = canvasElement.clientWidth;
@@ -132,71 +159,64 @@
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   });
 
   onDestroy(() => {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    if (renderer) renderer.dispose();
+    cancelAnimationFrame(animationFrameId);
+    controls?.dispose();
+    renderer?.dispose();
   });
 
-  // UI Interactive Functions
-  const addVectorX = () => {
-    if (simState) {
-      const v = Multivector.vector(Math.random() * 2 + 1, 0, 0); // random length 1-3
-      simState.add_object(v);
-    }
-  };
-
-  const addVectorY = () => {
-    if (simState) {
-      const v = Multivector.vector(0, Math.random() * 2 + 1, 0);
-      simState.add_object(v);
-    }
-  };
-
-  const addVectorZ = () => {
-    if (simState) {
-      const v = Multivector.vector(0, 0, Math.random() * 2 + 1);
-      simState.add_object(v);
-    }
-  };
+  // ── GA Controls ──
+  const addVectorX = () => simState?.add_object(Multivector.vector(Math.random() * 1.5 + 0.5, 0, 0));
+  const addVectorY = () => simState?.add_object(Multivector.vector(0, Math.random() * 1.5 + 0.5, 0));
+  const addVectorZ = () => simState?.add_object(Multivector.vector(0, 0, Math.random() * 1.5 + 0.5));
 
   const computeProduct = () => {
     if (simState && simState.object_count() >= 2) {
-        const count = simState.object_count();
-        const a = simState.get_object(count - 2);
-        const b = simState.get_object(count - 1);
-        const res = a.geometric_product(b);
-        simState.add_object(res);
+      const n = simState.object_count();
+      const result = simState.get_object(n - 2).geometric_product(simState.get_object(n - 1));
+      simState.add_object(result);
     }
   };
 
-  const clearCanvas = () => {
-    if (simState) {
-      simState.clear();
-    }
-  };
+  const clearCanvas = () => simState?.clear();
 </script>
 
 <div class="canvas-wrapper">
-  <!-- Interactive UI Overlay -->
+  <!-- ── Floating Control Panel ── -->
   <div class="control-panel">
-    <h3>Geometric Controls</h3>
-    <button onclick={addVectorX}>Add Vector X</button>
-    <button onclick={addVectorY}>Add Vector Y</button>
-    <button onclick={addVectorZ}>Add Vector Z</button>
+    <p class="panel-heading">Geometric Controls</p>
+
+    <!-- Vector add buttons -->
+    <div class="btn-group">
+      <button id="add-vec-x" onclick={addVectorX}>+ e₁</button>
+      <button id="add-vec-y" onclick={addVectorY}>+ e₂</button>
+      <button id="add-vec-z" onclick={addVectorZ}>+ e₃</button>
+    </div>
+
+    <button id="geo-product-btn" class="primary" onclick={computeProduct}>Geometric Product</button>
+    <button id="clear-btn" class="danger" onclick={clearCanvas}>Clear</button>
+
+    <!-- ── Blade Toggles ── -->
     <div class="divider"></div>
-    <button onclick={computeProduct} class="primary">Compute Geometric Product</button>
-    <button onclick={clearCanvas} class="danger">Clear Canvas</button>
+    <p class="panel-heading">Blade Visibility</p>
+    <div class="blade-grid">
+      {#each bladeLabels as b}
+        <button
+          class="blade-toggle"
+          class:active={blades[b.key as keyof typeof blades]}
+          onclick={() => toggleBlade(b.key)}
+        >
+          {b.label}
+        </button>
+      {/each}
+    </div>
   </div>
 
-  <div class="canvas-container" bind:this={canvasElement}>
-    <!-- Three.js will inject its <canvas> here -->
-  </div>
+  <!-- Three.js mount point -->
+  <div class="canvas-container" bind:this={canvasElement}></div>
 </div>
 
 <style>
@@ -204,75 +224,125 @@
     position: relative;
     width: 100%;
     height: 100%;
+    background: var(--bg-chassis);
   }
 
   .canvas-container {
     width: 100%;
     height: 100%;
-    background-color: #1e1e1e; /* Darker background */
     overflow: hidden;
   }
 
+  /* ── Control Panel ── */
   .control-panel {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(30, 30, 30, 0.85);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 16px;
-    color: white;
+    top: 16px;
+    left: 16px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--text-main);
     z-index: 10;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    min-width: 200px;
+    gap: 8px;
+    min-width: 190px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
 
-  .control-panel h3 {
-    margin: 0 0 10px 0;
-    font-size: 1.1rem;
-    color: #e0e0e0;
-    font-family: monospace;
+  .panel-heading {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .btn-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
   }
 
   button {
-    background: #333;
-    color: white;
-    border: 1px solid #555;
-    padding: 8px 12px;
-    border-radius: 4px;
+    background: #f1f5f9;
+    color: var(--text-main);
+    border: 1px solid var(--card-border);
+    padding: 6px 10px;
+    border-radius: 5px;
     cursor: pointer;
-    font-family: monospace;
-    transition: all 0.2s;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    transition: all 0.15s ease;
+    font-weight: 500;
   }
 
   button:hover {
-    background: #444;
+    background: #e2e8f0;
   }
 
   button.primary {
-    background: #2b5c8f;
-    border-color: #3b7cbf;
+    background: var(--accent-vis-light);
+    color: var(--accent-vis);
+    border-color: var(--accent-vis);
+    font-weight: 700;
   }
 
   button.primary:hover {
-    background: #3b7cbf;
+    background: var(--accent-vis);
+    color: white;
   }
 
   button.danger {
-    background: #8f2b2b;
-    border-color: #bf3b3b;
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
   }
 
   button.danger:hover {
-    background: #bf3b3b;
+    background: #dc2626;
+    color: white;
+  }
+
+  /* ── Blade Toggles ── */
+  .blade-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  .blade-toggle {
+    padding: 5px 4px;
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    background: #f8fafc;
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+  }
+
+  .blade-toggle.active {
+    background: var(--accent-vis-light);
+    color: var(--accent-vis);
+    border-color: var(--accent-vis);
+    font-weight: 700;
+  }
+
+  .blade-toggle:hover:not(.active) {
+    background: #e2e8f0;
+    color: var(--text-main);
   }
 
   .divider {
     height: 1px;
-    background: rgba(255,255,255,0.1);
-    margin: 5px 0;
+    background: var(--card-border);
+    margin: 2px 0;
   }
 </style>
