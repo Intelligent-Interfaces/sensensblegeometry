@@ -335,6 +335,7 @@
   }
 
   .stage-nav {
+    grid-column: 2;
     display: flex;
     gap: 6px;
     background: var(--panel-bg);
@@ -447,11 +448,16 @@
   /* bottom-drawer.collapsed .notebook-content rule removed since we use inline styles */
 
   .header-top {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     width: 100%;
     max-width: 900px;
+  }
+
+  .header-right {
+    grid-column: 3;
+    justify-self: end;
   }
 
   .icon-btn {
