@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package geometry;
+
+option go_package = "github.com/iig/sensensblegeometry/backend/gateway/proto";
+
+// A geometric multivector representing physical state
+message GeometricState {
+  string id = 1;
+  repeated float data = 2; // e.g. [scalar, e1, e2, e3, e12, e23, e31, e123]
+}
+
+message AnalysisRequest {
+  string context = 1;
+  string language = 2;
+  repeated GeometricState objects = 3;
+}
+
+message AnalysisResponse {
+  string status = 1;
+  string code = 2; // Return the generated analysis code or physical properties
+}
+
+service AnalysisService {
+  // Unary call for a single notebook execution request
+  rpc AnalyzeState(AnalysisRequest) returns (AnalysisResponse);
+  
+  // Bidirectional streaming for continuous 60fps canvas dragging
+  rpc StreamState(stream AnalysisRequest) returns (stream AnalysisResponse);
+}

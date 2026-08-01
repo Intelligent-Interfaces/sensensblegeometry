@@ -131,6 +131,45 @@
     });
   };
 
+  let isCopilotThinking = $state(false);
+
+  const askCopilot = () => {
+    isCopilotThinking = true;
+    const payload = {
+        context: "Canvas",
+        language: currentLang,
+        objects: [
+          { id: "vecX", data: [0, 2.0, 0, 0, 0, 0, 0, 0] },
+          { id: "vecY", data: [0, 0, 3.0, 0, 0, 0, 0, 0] }
+        ]
+    };
+    
+    try {
+      const ws = new WebSocket('ws://localhost:8080/ws');
+      ws.onopen = () => {
+        ws.send(JSON.stringify(payload));
+      };
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status === 'success' && view) {
+          const docLen = view.state.doc.length;
+          view.dispatch({
+            changes: { from: docLen, insert: '\n' + data.code }
+          });
+        }
+        ws.close();
+        isCopilotThinking = false;
+      };
+      ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        isCopilotThinking = false;
+      };
+    } catch (e) {
+       console.error("Connection failed", e);
+       isCopilotThinking = false;
+    }
+  };
+
   const runCode = () => {
     isGenerating = true;
     try {
@@ -283,13 +322,22 @@
               <option value="03">03: Optoelectronics</option>
             </select>
           </div>
-          <button class="generate-btn" onclick={runCode} disabled={isGenerating}>
-            {#if isGenerating}
-              Running...
-            {:else}
-              <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Code
-            {/if}
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="copilot-btn" onclick={askCopilot} disabled={isCopilotThinking}>
+              {#if isCopilotThinking}
+                Thinking...
+              {:else}
+                <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Copilot
+              {/if}
+            </button>
+            <button class="generate-btn" onclick={runCode} disabled={isGenerating}>
+              {#if isGenerating}
+                Running...
+              {:else}
+                <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Code
+              {/if}
+            </button>
+          </div>
         </div>
         <div class="editor-host" bind:this={editorElement}></div>
       </div>
@@ -597,12 +645,30 @@
     background: var(--accent-vis);
     color: white;
     border: none;
-    padding: 5px 12px;
     border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
     cursor: pointer;
-    font-weight: 700;
-    font-size: 0.75rem;
+    font-family: var(--font-mono);
   }
+
+  .copilot-btn {
+    background: transparent;
+    color: var(--accent-vis);
+    border: 1px solid var(--accent-vis);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-mono);
+  }
+
+  .copilot-btn:hover {
+    background: rgba(81, 148, 240, 0.1);
+  }
+
   .generate-btn:hover { background: var(--accent-vis-light); color: var(--accent-vis); }
   .generate-btn:disabled { background: var(--card-border); color: var(--text-muted); cursor: not-allowed; }
 
