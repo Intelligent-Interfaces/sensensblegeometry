@@ -173,10 +173,26 @@
   const addVectorY = () => simState?.add_object(Multivector.vector(0, Math.random() * 1.5 + 0.5, 0));
   const addVectorZ = () => simState?.add_object(Multivector.vector(0, 0, Math.random() * 1.5 + 0.5));
 
-  const computeProduct = () => {
+  const computeProduct = (type: 'geometric' | 'wedge' | 'inner') => {
     if (simState && simState.object_count() >= 2) {
       const n = simState.object_count();
-      const result = simState.get_object(n - 2).geometric_product(simState.get_object(n - 1));
+      const a = simState.get_object(n - 2);
+      const b = simState.get_object(n - 1);
+      
+      let result;
+      if (type === 'geometric') result = a.geometric_product(b);
+      else if (type === 'wedge') result = a.wedge(b);
+      else if (type === 'inner') result = a.inner(b);
+      
+      if (result) simState.add_object(result);
+    }
+  };
+
+  const computeDual = () => {
+    if (simState && simState.object_count() >= 1) {
+      const n = simState.object_count();
+      const a = simState.get_object(n - 1);
+      const result = a.dual();
       simState.add_object(result);
     }
   };
@@ -187,7 +203,7 @@
 <div class="canvas-wrapper">
   <!-- ── Floating Control Panel ── -->
   <div class="control-panel">
-    <p class="panel-heading">Geometric Controls</p>
+    <p class="panel-heading">Add Vectors</p>
 
     <!-- Vector add buttons -->
     <div class="btn-group">
@@ -196,8 +212,17 @@
       <button id="add-vec-z" onclick={addVectorZ}>+ e₃</button>
     </div>
 
-    <button id="geo-product-btn" class="primary" onclick={computeProduct}>Geometric Product</button>
-    <button id="clear-btn" class="danger" onclick={clearCanvas}>Clear</button>
+    <div class="divider"></div>
+    <p class="panel-heading">Cl(3,0) Operations</p>
+    
+    <div class="op-grid">
+      <button class="primary" onclick={() => computeProduct('geometric')}>Geometric (ab)</button>
+      <button class="primary" onclick={() => computeProduct('wedge')}>Wedge (a ∧ b)</button>
+      <button class="primary" onclick={() => computeProduct('inner')}>Inner (a · b)</button>
+      <button class="primary" onclick={computeDual}>Dual (a*)</button>
+    </div>
+
+    <button id="clear-btn" class="danger" style="margin-top: 4px;" onclick={clearCanvas}>Clear Canvas</button>
 
     <!-- ── Blade Toggles ── -->
     <div class="divider"></div>
@@ -265,6 +290,12 @@
   .btn-group {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+
+  .op-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 5px;
   }
 
