@@ -169,6 +169,13 @@
   export const addVectorY = () => { simState?.add_object(Multivector.vector(0, Math.random() * 1.5 + 0.5, 0)); };
   export const addVectorZ = () => { simState?.add_object(Multivector.vector(0, 0, Math.random() * 1.5 + 0.5)); };
 
+  export const addExplicitVector = (x: number, y: number, z: number) => {
+    if (simState) simState.add_object(Multivector.vector(x, y, z));
+  };
+
+  export const addExplicitMultivector = (s: number, e1: number, e2: number, e3: number, e12: number, e23: number, e31: number, e123: number) => {
+    if (simState) simState.add_object(Multivector.new(s, e1, e2, e3, e12, e23, e31, e123));
+  };
   export const computeProduct = (type: 'geometric' | 'wedge' | 'inner') => {
     if (simState && simState.object_count() >= 2) {
       const n = simState.object_count();

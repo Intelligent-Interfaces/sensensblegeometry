@@ -75,10 +75,26 @@
   let themeConf = new Compartment();
   let currentLang = $state<'r' | 'python'>('r');
 
-  let codeR = `library(clifford)\n\n# Analytical copilot environment\nanalyze_geometry <- function(state) {\n  # Predict geometric flux\n  return(flux(state))\n}`;
-  let codePython = `import torch\nimport versor\n\n# Analytical copilot environment\ndef analyze_geometry(state):\n    # Predict geometric flux\n    return state.calculate_flux()`;
+  let codeGA = `# Example 01: GA Basics\n# Define two vectors in Cl(3,0)\nv1 <- 5 * e1\nv2 <- 3 * e2\n\n# Compute their Wedge Product (Bivector)\nB <- v1 %^% v2`;
+  let codeED = `# Example 02: Electrodynamics\n# Electromagnetic field F = E + I*B\nE <- 3 * e1 + 1 * e2\nB <- 2 * e2 - 4 * e3`;
+  let codeOE = `# Example 03: Optoelectronics\n# Polarization state\nE_x <- 2 * e1\nE_y <- 2 * e2\nphase <- E_x %^% E_y`;
+
+  let codePython = `import torch\nimport versor\n\n# Geometric NC environment\ndef analyze_geometry(state):\n    # Predict geometric flux\n    return state.calculate_flux()`;
+
+  let currentExample = $state('01');
+  let codeR = $state(codeGA);
 
   let currentCode = $derived(currentLang === 'r' ? codeR : codePython);
+
+  function loadExample(ex: string) {
+    currentExample = ex;
+    if (ex === '01') codeR = codeGA;
+    if (ex === '02') codeR = codeED;
+    if (ex === '03') codeR = codeOE;
+    if (currentLang === 'r' && view) {
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: codeR } });
+    }
+  }
 
   $effect(() => {
     if (showMath && katexEq && mathFooterEl) {
@@ -110,39 +126,45 @@
     });
   };
 
-  const generateAnalysis = async () => {
+  const runCode = () => {
     isGenerating = true;
     try {
-      const payload = {
-        context: "Canvas",
-        language: currentLang,
-        objects: [
-          { id: "vecX", data: [0, 2.0, 0, 0, 0, 0, 0, 0] },
-          { id: "vecY", data: [0, 0, 3.0, 0, 0, 0, 0, 0] }
-        ]
-      };
-
-      const res = await fetch("http://127.0.0.1:8000/generate/code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      
-      if (data.status === "success" && view) {
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: data.code }
+      if (canvasComponent && currentLang === 'r') {
+        canvasComponent.clearCanvas();
+        const code = view.state.doc.toString();
+        const lines = code.split('\n');
+        
+        lines.forEach(line => {
+          const isAssignment = line.includes('<-');
+          if (isAssignment) {
+             let x=0, y=0, z=0;
+             const terms = line.match(/[-+]?\s*[0-9.]*\s*\*?\s*e[123]/g);
+             if (terms) {
+               terms.forEach(term => {
+                  let str = term.replace(/\s/g, '').replace('*', '');
+                  let val = parseFloat(str);
+                  if (isNaN(val)) val = str.startsWith('-') ? -1 : 1;
+                  
+                  if (term.includes('e1')) x += val;
+                  if (term.includes('e2')) y += val;
+                  if (term.includes('e3')) z += val;
+               });
+               if (x !== 0 || y !== 0 || z !== 0) {
+                 canvasComponent.addExplicitVector(x, y, z);
+               }
+             }
+             
+             // Detect wedge product
+             if (line.includes('%^%')) {
+               canvasComponent.computeProduct('wedge');
+             }
+          }
         });
       }
     } catch (e) {
-      console.error("Failed to connect to Geometric NC:", e);
-      const errTxt = currentLang === 'r' ? "# Error connecting to Geometric NC on port 8000\n# Please ensure FastAPI is running." : "# Error connecting to Geometric NC on port 8000\n# Please ensure FastAPI is running.";
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: errTxt }
-      });
+      console.error("Parse error:", e);
     } finally {
-      isGenerating = false;
+      setTimeout(() => isGenerating = false, 300);
     }
   };
 
@@ -245,15 +267,24 @@
       
       <div class="code-area">
         <div class="toolbar">
-          <div class="lang-toggle">
-            <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
-            <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="lang-toggle">
+              <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
+              <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
+            </div>
+            {#if currentLang === 'r'}
+              <select class="example-select" value={currentExample} onchange={(e) => loadExample((e.target as HTMLSelectElement).value)}>
+                <option value="01">01: GA Basics</option>
+                <option value="02">02: Electrodynamics</option>
+                <option value="03">03: Optoelectronics</option>
+              </select>
+            {/if}
           </div>
-          <button class="generate-btn" onclick={generateAnalysis} disabled={isGenerating}>
+          <button class="generate-btn" onclick={runCode} disabled={isGenerating}>
             {#if isGenerating}
-              Generating...
+              Running...
             {:else}
-              <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Generate
+              <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Code
             {/if}
           </button>
         </div>
@@ -545,6 +576,18 @@
   .lang-toggle button.active {
     background: var(--accent-vis);
     color: white;
+  }
+  
+  .example-select {
+    background: var(--bg-chassis);
+    color: var(--text-main);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    outline: none;
+    cursor: pointer;
   }
 
   .generate-btn {
