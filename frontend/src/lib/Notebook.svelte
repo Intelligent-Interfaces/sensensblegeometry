@@ -10,8 +10,23 @@
   import katex from 'katex';
   import 'katex/dist/katex.min.css';
   import { tourState } from './tourState.svelte';
+  import { canvasUI } from './canvasState.svelte';
 
-  let { activeStage = 1, stages = [], onSwitchStage = () => {}, katexEq = '', caption = '' } = $props();
+  let { activeStage = 1, stages = [], onSwitchStage = () => {}, katexEq = '', caption = '', canvasComponent = null } = $props();
+
+  const bladeLabels = [
+    { key: 'e1', label: 'e₁' },
+    { key: 'e2', label: 'e₂' },
+    { key: 'e3', label: 'e₃' },
+    { key: 'e12', label: 'e₁₂' },
+    { key: 'e23', label: 'e₂₃' },
+    { key: 'e31', label: 'e₃₁' },
+    { key: 'e123', label: 'e₁₂₃' },
+  ];
+
+  function toggleBlade(key: string) {
+    canvasUI.blades[key as keyof typeof canvasUI.blades] = !canvasUI.blades[key as keyof typeof canvasUI.blades];
+  }
 
   let editorElement: HTMLDivElement;
   let mathFooterEl = $state<HTMLDivElement>();
@@ -114,22 +129,30 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div id="math-header" class="math-header" class:pulsing={tourState.currentStep?.highlightElement === 'math-header'} onclick={() => isOpen = !isOpen}>
     <div class="drag-handle"></div>
-    
-    <nav class="stage-nav" onclick={(e) => e.stopPropagation()}>
-      {#each stages as stage}
-        <button
-          class="stage-tab"
-          class:active={activeStage === stage.id}
-          onclick={(e) => { e.stopPropagation(); onSwitchStage(stage.id); }}
-        >
-          <span class="badge">{stage.id}</span>
-          {stage.label}
+    <div class="header-top">
+      <nav class="stage-nav" onclick={(e) => e.stopPropagation()}>
+        {#each stages as stage}
+          <button
+            class="stage-tab"
+            class:active={activeStage === stage.id}
+            onclick={(e) => { e.stopPropagation(); onSwitchStage(stage.id); }}
+          >
+            <span class="badge">{stage.id}</span>
+            {stage.label}
+          </button>
+        {/each}
+      </nav>
+      
+      <div class="header-right" onclick={(e) => e.stopPropagation()}>
+        <button class="icon-btn" class:active={showMath} onclick={() => showMath = !showMath} title="Toggle Math View">
+          {#if showMath}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          {:else}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          {/if}
         </button>
-      {/each}
-      <button class="stage-tab" class:active={showMath} onclick={(e) => { e.stopPropagation(); showMath = !showMath; }}>
-        ∑ Math
-      </button>
-    </nav>
+      </div>
+    </div>
 
     {#if showMath}
       <div class="eq-display">
@@ -138,26 +161,57 @@
       <p class="eq-caption">{caption}</p>
     {/if}
   </div>
-  
   <div class="notebook-content">
-    <div class="toolbar">
-      <div class="lang-toggle">
-        <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
-        <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
+    <div class="notebook-body">
+      {#if activeStage === 1}
+        <div class="canvas-controls">
+          <p class="panel-heading">Add Vectors</p>
+          <div class="btn-group">
+            <button onclick={() => canvasComponent?.addVectorX()}>+ e₁</button>
+            <button onclick={() => canvasComponent?.addVectorY()}>+ e₂</button>
+            <button onclick={() => canvasComponent?.addVectorZ()}>+ e₃</button>
+          </div>
+          <div class="divider"></div>
+          <p class="panel-heading">Cl(3,0) Operations</p>
+          <div class="op-grid">
+            <button class="primary" onclick={() => canvasComponent?.computeProduct('geometric')}>Geometric (ab)</button>
+            <button id="btn-wedge" class="primary" class:pulsing={tourState.currentStep?.highlightElement === 'btn-wedge'} onclick={() => canvasComponent?.computeProduct('wedge')}>Wedge (a ∧ b)</button>
+            <button class="primary" onclick={() => canvasComponent?.computeProduct('inner')}>Inner (a · b)</button>
+            <button id="btn-dual" class="primary" class:pulsing={tourState.currentStep?.highlightElement === 'btn-dual'} onclick={() => canvasComponent?.computeDual()}>Dual (a*)</button>
+          </div>
+          <button id="clear-btn" class="danger" style="margin-top: 4px;" onclick={() => canvasComponent?.clearCanvas()}>Clear Canvas</button>
+          <div class="divider"></div>
+          <p class="panel-heading">Blade Visibility</p>
+          <div class="blade-grid">
+            {#each bladeLabels as b}
+              <button class="blade-toggle" class:active={canvasUI.blades[b.key as keyof typeof canvasUI.blades]} onclick={() => toggleBlade(b.key)}>{b.label}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+      
+      <div class="code-area">
+        <div class="toolbar">
+          <div class="lang-toggle">
+            <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
+            <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
+          </div>
+          <button class="generate-btn" onclick={generateAnalysis} disabled={isGenerating}>
+            {#if isGenerating}
+              Generating...
+            {:else}
+              <svg style="display:inline-block; vertical-align:text-bottom; margin-right:4px;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Generate
+            {/if}
+          </button>
+        </div>
+        <div class="editor-host" bind:this={editorElement}></div>
       </div>
-      <button class="generate-btn" onclick={generateAnalysis} disabled={isGenerating}>
-        {isGenerating ? 'Generating...' : '✨ Generate'}
-      </button>
     </div>
-    <div class="editor-host" bind:this={editorElement}></div>
   </div>
 </div>
 
 <style>
   .bottom-drawer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
     width: 100%;
     background: rgba(33, 37, 43, 0.98);
     backdrop-filter: blur(24px);
@@ -298,11 +352,98 @@
     transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
   }
   
+  .notebook-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .canvas-controls {
+    width: 250px;
+    background: rgba(0, 0, 0, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+  }
+
+  .code-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .bottom-drawer.collapsed .notebook-content {
     height: 0;
     opacity: 0;
   }
 
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--card-border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--text-muted);
+  }
+  
+  .icon-btn:hover {
+    color: var(--text-main);
+    background: var(--card-border);
+  }
+  
+  .icon-btn.active {
+    background: var(--accent-vis-light);
+    border-color: var(--accent-vis);
+    color: var(--accent-vis);
+  }
+
+  /* Control Panel Styles */
+  .panel-heading {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .canvas-controls button {
+    background: var(--bg-chassis); color: var(--text-main); border: 1px solid var(--card-border);
+    padding: 6px 10px; border-radius: 5px; cursor: pointer; font-family: var(--font-mono);
+    font-size: 0.72rem; transition: all 0.15s ease; font-weight: 500;
+  }
+  .canvas-controls button:hover { background: var(--card-border); }
+  .canvas-controls button.primary {
+    background: var(--accent-vis-light); color: var(--accent-vis); border-color: var(--accent-vis); font-weight: 700;
+  }
+  .canvas-controls button.primary:hover { background: var(--accent-vis); color: white; }
+  .canvas-controls button.danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+  .canvas-controls button.danger:hover { background: #dc2626; color: white; }
+  .blade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .blade-toggle { padding: 5px 4px; font-size: 0.68rem; text-align: center; }
+  .blade-toggle.active { background: var(--accent-vis-light); color: var(--accent-vis); border-color: var(--accent-vis); font-weight: 700; }
+  .divider { height: 1px; background: rgba(255, 255, 255, 0.1); margin: 6px 0; }
+
+  /* Editor Toolbar Styles */
   .toolbar {
     display: flex;
     justify-content: space-between;
