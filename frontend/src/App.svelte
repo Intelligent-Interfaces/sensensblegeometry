@@ -4,8 +4,6 @@
   import Notebook from './lib/Notebook.svelte';
   import GuidedTour from './lib/GuidedTour.svelte';
   import { tourState } from './lib/tourState.svelte';
-  import katex from 'katex';
-  import 'katex/dist/katex.min.css';
 
   // Active stage tracking
   let activeStage = $state(1);
@@ -15,15 +13,6 @@
     { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
     { id: 2, label: 'ML Copilot', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
   ];
-
-  let mathFooterEl: HTMLElement;
-
-  $effect(() => {
-    const stage = stages.find(s => s.id === activeStage);
-    if (stage && mathFooterEl) {
-      katex.render(stage.katex, mathFooterEl, { throwOnError: false, displayMode: true });
-    }
-  });
 
   function switchStage(id: number) {
     activeStage = id;
@@ -81,6 +70,14 @@
       }
     ]);
   }
+
+  function toggleTour() {
+    if (tourState.isActive) {
+      tourState.closeTour();
+    } else {
+      startBivectorTour();
+    }
+  }
 </script>
 
 <div class="layout">
@@ -98,22 +95,12 @@
       </div>
     </div>
 
-    <nav class="stage-nav">
-      {#each stages as stage}
-        <button
-          class="stage-tab"
-          class:active={activeStage === stage.id}
-          onclick={() => switchStage(stage.id)}
-        >
-          <span class="badge">{stage.id}</span>
-          {stage.label}
-        </button>
-      {/each}
-      <button class="tour-btn" onclick={startBivectorTour}>🎓 Tour</button>
-      <button class="theme-btn" onclick={toggleTheme} aria-label="Toggle theme">
+    <div class="header-actions">
+      <button class="icon-btn" class:active={tourState.isActive} onclick={toggleTour} title="Toggle Interactive Tour">🎓</button>
+      <button class="icon-btn" onclick={toggleTheme} aria-label="Toggle theme" title="Toggle Light/Dark Mode">
         {#if isDarkMode} 🌙 {:else} ☀️ {/if}
       </button>
-    </nav>
+    </div>
   </header>
 
   <!-- ═══ Workspace ═══ -->
@@ -124,8 +111,14 @@
       <Canvas />
     </section>
 
-    <!-- Floating Notebook overlay -->
-    <Notebook />
+    <!-- Bottom Drawer Notebook overlay -->
+    <Notebook 
+      activeStage={activeStage}
+      stages={stages}
+      onSwitchStage={switchStage}
+      katexEq={stages[activeStage - 1].katex}
+      caption={stages[activeStage - 1].caption}
+    />
 
     <section class="pane copilot-pane" class:hidden={activeStage !== 2}>
       <div class="placeholder-pane">
@@ -139,17 +132,6 @@
       </div>
     </section>
   </div>
-
-  <!-- ═══ KaTeX Math Footer ═══ -->
-  <footer class="math-footer">
-    <span class="stage-label">
-      STAGE {activeStage} · {stages[activeStage - 1].label.toUpperCase()}
-    </span>
-    <div class="eq-display">
-      <div bind:this={mathFooterEl}></div>
-    </div>
-    <p class="eq-caption">{stages[activeStage - 1].caption}</p>
-  </footer>
 </div>
 
 <style>
@@ -193,97 +175,35 @@
     font-family: var(--font-mono);
   }
 
-  /* ── Stage Nav ── */
-  .stage-nav {
-    display: flex;
-    gap: 6px;
-    background: var(--bg-chassis);
-    padding: 4px;
-    border-radius: 8px;
-    border: 1px solid var(--card-border);
-  }
-
-  .stage-tab {
+  /* ── Header Actions ── */
+  .header-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    font-size: 0.72rem;
-    font-family: var(--font-mono);
-    color: var(--text-muted);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    gap: 8px;
   }
 
-  .stage-tab:hover {
-    color: var(--text-main);
-    background: var(--card-border);
-  }
-
-  .stage-tab.active {
-    color: var(--text-main);
-    background: var(--panel-bg);
-    border-color: var(--card-border);
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  .badge {
-    display: inline-flex;
+  .icon-btn {
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    font-size: 0.65rem;
-    background: var(--card-border);
-  }
-
-  .stage-tab.active .badge {
-    background: var(--accent-vis);
-    color: #fff;
-  }
-
-  .tour-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    margin-left: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--accent-vis);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     background: transparent;
-    border: 1px solid var(--accent-vis);
-    border-radius: 5px;
+    border: 1px solid var(--card-border);
     cursor: pointer;
     transition: all 0.15s ease;
+    font-size: 1rem;
+    color: var(--text-main);
   }
-
-  .tour-btn:hover {
-    background: var(--accent-vis-light);
+  .icon-btn:hover { 
+    background: var(--card-border); 
     transform: translateY(-1px);
   }
-
-  .theme-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 5px;
-    background: transparent;
-    border: 1px solid var(--card-border);
-    cursor: pointer;
-    margin-left: 4px;
-    transition: background 0.15s;
-    color: var(--text-main);
+  .icon-btn.active {
+    background: var(--accent-vis-light);
+    border-color: var(--accent-vis);
   }
-  .theme-btn:hover { background: var(--card-border); }
 
   /* ── Workspace ── */
   .workspace {
@@ -326,49 +246,9 @@
     text-align: center;
   }
 
-  /* ── KaTeX Math Footer ── */
-  .math-footer {
-    flex-shrink: 0;
-    background: var(--panel-bg);
-    border-top: 1px solid var(--card-border);
-    padding: 14px 32px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-    z-index: 20;
-  }
-
-  .stage-label {
-    font-size: 0.62rem;
-    font-family: var(--font-mono);
-    color: var(--accent-vis);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: 800;
-  }
-
-  .eq-display {
-    background: var(--bg-chassis);
-    border-radius: 12px;
-    padding: 12px 32px;
-    width: 100%;
-    max-width: 700px;
+  .placeholder-pane span {
+    font-size: 0.85rem;
+    max-width: 300px;
     text-align: center;
-    box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.04);
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-main);
-  }
-
-  .eq-caption {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    max-width: 600px;
-    text-align: center;
-    line-height: 1.5;
   }
 </style>

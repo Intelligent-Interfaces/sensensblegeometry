@@ -7,11 +7,18 @@
   import { StreamLanguage } from '@codemirror/language';
   import { r } from '@codemirror/legacy-modes/mode/r';
   import { oneDark } from '@codemirror/theme-one-dark';
+  import katex from 'katex';
+  import 'katex/dist/katex.min.css';
+  import { tourState } from './tourState.svelte';
+
+  let { activeStage = 1, stages = [], onSwitchStage = () => {}, katexEq = '', caption = '' } = $props();
 
   let editorElement: HTMLDivElement;
+  let mathFooterEl = $state<HTMLDivElement>();
   let view: EditorView;
   let isGenerating = $state(false);
-  let isOpen = $state(true);
+  let isOpen = $state(false); // Default to closed so you just see the math footer
+  let showMath = $state(true);
   
   let languageConf = new Compartment();
   let currentLang = $state<'r' | 'python'>('r');
@@ -21,11 +28,16 @@
 
   let currentCode = $derived(currentLang === 'r' ? codeR : codePython);
 
+  $effect(() => {
+    if (showMath && katexEq && mathFooterEl) {
+      katex.render(katexEq, mathFooterEl, { throwOnError: false, displayMode: true });
+    }
+  });
+
   const setLanguage = (lang: 'r' | 'python') => {
     if (!view) return;
     currentLang = lang;
     
-    // Switch the editor text completely
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: currentCode },
       effects: languageConf.reconfigure(lang === 'r' ? StreamLanguage.define(r) : python())
@@ -73,7 +85,7 @@
       doc: currentCode,
       extensions: [
         basicSetup,
-        languageConf.of(StreamLanguage.define(r)), // Default to R
+        languageConf.of(StreamLanguage.define(r)),
         oneDark,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -96,126 +108,208 @@
   });
 </script>
 
-
-<div class="notebook-container">
-  <button class="toggle-handle" onclick={() => isOpen = !isOpen}>
-    {isOpen ? '›' : '‹'}
-  </button>
-  <div class="notebook-pane" class:collapsed={!isOpen}>
-    <div class="header">
-      <div class="title-row">
-        <h2>Analytical Notebook</h2>
-      </div>
-      
-      <div class="toolbar">
-        <div class="lang-toggle">
-          <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
-          <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
-        </div>
-        <button class="generate-btn" onclick={generateAnalysis} disabled={isGenerating}>
-          {isGenerating ? 'Generating...' : '✨ Generate'}
-        </button>
-      </div>
-    </div>
+<div class="bottom-drawer" class:collapsed={!isOpen}>
+  <!-- Math Readout / Drawer Handle -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div id="math-header" class="math-header" class:pulsing={tourState.currentStep?.highlightElement === 'math-header'} onclick={() => isOpen = !isOpen}>
+    <div class="drag-handle"></div>
     
+    <nav class="stage-nav" onclick={(e) => e.stopPropagation()}>
+      {#each stages as stage}
+        <button
+          class="stage-tab"
+          class:active={activeStage === stage.id}
+          onclick={(e) => { e.stopPropagation(); onSwitchStage(stage.id); }}
+        >
+          <span class="badge">{stage.id}</span>
+          {stage.label}
+        </button>
+      {/each}
+      <button class="stage-tab" class:active={showMath} onclick={(e) => { e.stopPropagation(); showMath = !showMath; }}>
+        ∑ Math
+      </button>
+    </nav>
+
+    {#if showMath}
+      <div class="eq-display">
+        <div bind:this={mathFooterEl}></div>
+      </div>
+      <p class="eq-caption">{caption}</p>
+    {/if}
+  </div>
+  
+  <div class="notebook-content">
+    <div class="toolbar">
+      <div class="lang-toggle">
+        <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
+        <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
+      </div>
+      <button class="generate-btn" onclick={generateAnalysis} disabled={isGenerating}>
+        {isGenerating ? 'Generating...' : '✨ Generate'}
+      </button>
+    </div>
     <div class="editor-host" bind:this={editorElement}></div>
   </div>
 </div>
 
 <style>
-  .notebook-container {
+  .bottom-drawer {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    height: calc(100vh - 32px);
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(33, 37, 43, 0.98);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
     z-index: 100;
-    pointer-events: none;
   }
 
-  .toggle-handle {
-    pointer-events: auto;
-    background: rgba(40, 44, 52, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-right: none;
-    border-radius: 8px 0 0 8px;
-    padding: 12px 6px;
+  .math-header {
+    background: var(--panel-bg);
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    padding: 12px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    color: #abb2bf;
-    font-size: 1.2rem;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.05);
-    transition: background 0.2s, color 0.2s;
-    margin-top: 16px;
-    z-index: 101;
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+    transition: background 0.2s;
   }
 
-  .toggle-handle:hover {
-    background: #4d93d3;
-    color: white;
+  .math-header:hover {
+    background: var(--bg-chassis);
   }
 
-  .notebook-pane {
-    pointer-events: auto;
-    width: 400px;
-    height: 100%;
-    background: rgba(33, 37, 43, 0.95);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px 0 12px 12px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  .math-header.pulsing {
+    animation: pulse 1.5s infinite;
+    box-shadow: inset 0 0 0 2px #c678dd;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: inset 0 0 0 2px rgba(198, 120, 221, 0.7); }
+    70% { transform: scale(1.02); box-shadow: inset 0 0 0 10px rgba(198, 120, 221, 0); }
+    100% { transform: scale(1); box-shadow: inset 0 0 0 2px rgba(198, 120, 221, 0); }
+  }
+
+  .drag-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--text-muted);
+    border-radius: 4px;
+    opacity: 0.5;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .stage-nav {
+    display: flex;
+    gap: 6px;
+    background: var(--panel-bg);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-top: 4px;
+  }
+
+  .stage-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .stage-tab:hover {
+    color: var(--text-main);
+    background: var(--card-border);
+  }
+
+  .stage-tab.active {
+    color: var(--text-main);
+    background: var(--bg-chassis);
+    border-color: var(--card-border);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    background: var(--card-border);
+  }
+
+  .stage-tab.active .badge {
+    background: var(--accent-vis);
+    color: #fff;
+  }
+
+  .eq-display {
+    background: var(--bg-chassis);
+    border-radius: 12px;
+    padding: 2px 32px; /* reduced padding to fit nicely */
+    width: 100%;
+    max-width: 700px;
+    text-align: center;
+    box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.04);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+  }
+
+  .eq-caption {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    text-align: center;
+    margin: 0;
+  }
+
+  .notebook-content {
+    height: 45vh;
+    opacity: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-    transform-origin: right;
+    transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
   }
-
-  .notebook-pane.collapsed {
-    transform: translateX(110%);
+  
+  .bottom-drawer.collapsed .notebook-content {
+    height: 0;
     opacity: 0;
-    pointer-events: none;
   }
-
-  .header {
-    padding: 12px 16px;
-    background: rgba(40, 44, 52, 0.8);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  h2 {
-    margin: 0;
-    color: #abb2bf;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .toggle-btn {
-    background: transparent;
-    color: #abb2bf;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0 4px;
-    line-height: 1;
-  }
-  .toggle-btn:hover { color: #fff; }
 
   .toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .lang-toggle {
