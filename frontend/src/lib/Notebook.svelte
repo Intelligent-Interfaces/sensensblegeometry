@@ -12,7 +12,7 @@
   import { tourState } from './tourState.svelte';
   import { canvasUI } from './canvasState.svelte';
 
-  let { activeStage = 1, stages = [], onSwitchStage = () => {}, katexEq = '', caption = '', canvasComponent = null } = $props();
+  let { activeStage = 1, stages = [], onSwitchStage = () => {}, katexEq = '', caption = '', canvasComponent = null, isDarkMode = false } = $props();
 
   const bladeLabels = [
     { key: 'e1', label: 'e₁' },
@@ -72,6 +72,7 @@
   }
   
   let languageConf = new Compartment();
+  let themeConf = new Compartment();
   let currentLang = $state<'r' | 'python'>('r');
 
   let codeR = `library(clifford)\n\n# Analytical copilot environment\nanalyze_geometry <- function(state) {\n  # Predict geometric flux\n  return(flux(state))\n}`;
@@ -88,6 +89,14 @@
   $effect(() => {
     if (isOpen) {
       tourState.reportAction('console_opened');
+    }
+  });
+
+  $effect(() => {
+    if (view) {
+      view.dispatch({
+        effects: themeConf.reconfigure(isDarkMode ? oneDark : [])
+      });
     }
   });
 
@@ -143,7 +152,7 @@
       extensions: [
         basicSetup,
         languageConf.of(StreamLanguage.define(r)),
-        oneDark,
+        themeConf.of(isDarkMode ? oneDark : []),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const txt = update.state.doc.toString();
@@ -257,10 +266,10 @@
 <style>
   .bottom-drawer {
     width: 100%;
-    background: rgba(33, 37, 43, 0.98);
+    background: var(--panel-bg);
     backdrop-filter: blur(24px);
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--card-border);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     z-index: 100;
@@ -269,7 +278,7 @@
   .math-header {
     background: var(--panel-bg);
     border: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--card-border);
     padding: 12px 32px;
     display: flex;
     flex-direction: column;
@@ -419,8 +428,8 @@
 
   .canvas-controls {
     width: 250px;
-    background: rgba(0, 0, 0, 0.15);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-chassis);
+    border-right: 1px solid var(--card-border);
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -497,7 +506,7 @@
   .blade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
   .blade-toggle { padding: 5px 4px; font-size: 0.68rem; text-align: center; }
   .blade-toggle.active { background: var(--accent-vis-light); color: var(--accent-vis); border-color: var(--accent-vis); font-weight: 700; }
-  .divider { height: 1px; background: rgba(255, 255, 255, 0.1); margin: 6px 0; }
+  .divider { height: 1px; background: var(--card-border); margin: 6px 0; }
 
   /* Editor Toolbar Styles */
   .toolbar {
@@ -505,21 +514,21 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--card-border);
   }
 
   .lang-toggle {
     display: flex;
-    background: #1e2227;
+    background: var(--bg-chassis);
     border-radius: 4px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--card-border);
   }
 
   .lang-toggle button {
     background: transparent;
-    color: #6c757d;
+    color: var(--text-muted);
     border: none;
     padding: 4px 10px;
     font-size: 0.75rem;
@@ -528,13 +537,13 @@
   }
   
   .lang-toggle button.active {
-    background: #4d93d3;
+    background: var(--accent-vis);
     color: white;
   }
 
   .generate-btn {
-    background: #61afef;
-    color: #282c34;
+    background: var(--accent-vis);
+    color: white;
     border: none;
     padding: 5px 12px;
     border-radius: 4px;
@@ -542,8 +551,8 @@
     font-weight: 700;
     font-size: 0.75rem;
   }
-  .generate-btn:hover { background: #4d93d3; color: white; }
-  .generate-btn:disabled { background: #5c6370; cursor: not-allowed; }
+  .generate-btn:hover { background: var(--accent-vis-light); color: var(--accent-vis); }
+  .generate-btn:disabled { background: var(--card-border); color: var(--text-muted); cursor: not-allowed; }
 
   .editor-host {
     flex-grow: 1;

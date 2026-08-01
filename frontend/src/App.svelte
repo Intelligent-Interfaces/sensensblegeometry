@@ -149,6 +149,7 @@
     katexEq={stages[activeStage - 1].katex}
     caption={stages[activeStage - 1].caption}
     canvasComponent={canvasComponent}
+    isDarkMode={isDarkMode}
   />
 </div>
 
