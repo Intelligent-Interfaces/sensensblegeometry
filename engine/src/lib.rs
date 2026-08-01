@@ -76,6 +76,12 @@ impl Multivector {
 
     pub fn get_scalar(&self) -> f64 { self.data[0] }
     pub fn get_vector_x(&self) -> f64 { self.data[1] }
+    pub fn get_vector_y(&self) -> f64 { self.data[2] }
+    pub fn get_vector_z(&self) -> f64 { self.data[3] }
+    pub fn get_bivector_xy(&self) -> f64 { self.data[4] }
+    pub fn get_bivector_yz(&self) -> f64 { self.data[5] }
+    pub fn get_bivector_zx(&self) -> f64 { self.data[6] }
+    pub fn get_trivector(&self) -> f64 { self.data[7] }
 }
 
 /// The state of our geometric canvas simulation
@@ -99,5 +105,9 @@ impl SimulationState {
 
     pub fn object_count(&self) -> usize {
         self.objects.len()
+    }
+
+    pub fn get_object(&self, index: usize) -> Multivector {
+        self.objects[index]
     }
 }
