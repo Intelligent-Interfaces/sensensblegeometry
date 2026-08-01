@@ -278,7 +278,7 @@
     position: absolute;
     top: 16px;
     left: 16px;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--panel-bg);
     backdrop-filter: blur(10px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
@@ -315,7 +315,7 @@
   }
 
   button {
-    background: #f1f5f9;
+    background: var(--bg-chassis);
     color: var(--text-main);
     border: 1px solid var(--card-border);
     padding: 6px 10px;
@@ -328,7 +328,7 @@
   }
 
   button:hover {
-    background: #e2e8f0;
+    background: var(--card-border);
   }
 
   button.primary {
@@ -379,7 +379,7 @@
     padding: 5px 4px;
     font-size: 0.68rem;
     font-family: var(--font-mono);
-    background: #f8fafc;
+    background: var(--bg-chassis);
     color: var(--text-muted);
     border: 1px solid var(--card-border);
     border-radius: 4px;
@@ -396,7 +396,7 @@
   }
 
   .blade-toggle:hover:not(.active) {
-    background: #e2e8f0;
+    background: var(--card-border);
     color: var(--text-main);
   }
 
