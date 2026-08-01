@@ -164,14 +164,25 @@
 
   onDestroy(() => {
     cancelAnimationFrame(animationFrameId);
-    controls?.dispose();
-    renderer?.dispose();
+    if (renderer) renderer.dispose();
+    if (simState) simState.free();
+  });
+
+  $effect(() => {
+    const handleThemeChange = (e: CustomEvent) => {
+      if (!scene) return;
+      const isDark = e.detail.isDark;
+      const bgColor = isDark ? 0x0f172a : 0xf8fafc;
+      scene.background = new THREE.Color(bgColor);
+    };
+    window.addEventListener('themechanged', handleThemeChange as EventListener);
+    return () => window.removeEventListener('themechanged', handleThemeChange as EventListener);
   });
 
   // ── GA Controls ──
-  const addVectorX = () => simState?.add_object(Multivector.vector(Math.random() * 1.5 + 0.5, 0, 0));
-  const addVectorY = () => simState?.add_object(Multivector.vector(0, Math.random() * 1.5 + 0.5, 0));
-  const addVectorZ = () => simState?.add_object(Multivector.vector(0, 0, Math.random() * 1.5 + 0.5));
+  const addVectorX = () => { simState?.add_object(Multivector.vector(Math.random() * 1.5 + 0.5, 0, 0)); };
+  const addVectorY = () => { simState?.add_object(Multivector.vector(0, Math.random() * 1.5 + 0.5, 0)); };
+  const addVectorZ = () => { simState?.add_object(Multivector.vector(0, 0, Math.random() * 1.5 + 0.5)); };
 
   const computeProduct = (type: 'geometric' | 'wedge' | 'inner') => {
     if (simState && simState.object_count() >= 2) {

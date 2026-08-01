@@ -41,9 +41,9 @@
   }
 
   .tour-card {
-    background: rgba(33, 37, 43, 0.98);
+    background: var(--panel-bg);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(97, 175, 239, 0.3);
     width: 400px;
@@ -57,13 +57,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-chassis);
+    border-bottom: 1px solid var(--card-border);
   }
 
   .tour-header h3 {
     margin: 0;
-    color: #61afef;
+    color: var(--accent-vis);
     font-size: 0.9rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -73,7 +73,7 @@
   .close-btn {
     background: transparent;
     border: none;
-    color: #abb2bf;
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 1.1rem;
     padding: 0;
@@ -85,7 +85,7 @@
 
   .tour-body {
     padding: 20px;
-    color: #e5c07b;
+    color: var(--text-main);
     font-size: 1rem;
     line-height: 1.5;
   }
@@ -99,19 +99,19 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: rgba(0, 0, 0, 0.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-chassis);
+    border-top: 1px solid var(--card-border);
   }
 
   .progress {
     font-size: 0.75rem;
-    color: #abb2bf;
+    color: var(--text-muted);
     font-weight: 600;
   }
 
   .next-btn {
-    background: #61afef;
-    color: #282c34;
+    background: var(--accent-vis);
+    color: #fff;
     border: none;
     padding: 6px 16px;
     border-radius: 6px;
@@ -122,7 +122,8 @@
   }
 
   .next-btn:hover {
-    background: #4d93d3;
+    background: var(--accent-vis-light);
+    color: var(--accent-vis);
   }
 
   .waiting {

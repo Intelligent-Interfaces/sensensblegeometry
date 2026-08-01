@@ -9,6 +9,7 @@
 
   // Active stage tracking
   let activeStage = $state(1);
+  let isDarkMode = $state(false);
 
   const stages = [
     { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
@@ -28,13 +29,20 @@
     activeStage = id;
   }
 
+  function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    // Dispatch an event so Canvas can update ThreeJS background
+    window.dispatchEvent(new CustomEvent('themechanged', { detail: { isDark: isDarkMode } }));
+  }
+
   function startBivectorTour() {
-    activeStage = 1; // Ensure canvas is active
+    activeStage = 1;
     
-    // We dispatch an event or call a method on canvas if we could, 
-    // but the easiest way is to let the autoAction push states to the canvas directly, 
-    // or just tell the user to click things. Since we want auto spawning, we'll let Canvas listen to tourState or emit events.
-    // Wait, the easiest way is for autoAction to just find the button and click it!
     tourState.startTour([
       {
         title: 'The Birth of a Bivector',
@@ -101,7 +109,10 @@
           {stage.label}
         </button>
       {/each}
-      <button class="tour-btn" onclick={startBivectorTour}>🎓 Interactive Tour</button>
+      <button class="tour-btn" onclick={startBivectorTour}>🎓 Tour</button>
+      <button class="theme-btn" onclick={toggleTheme} aria-label="Toggle theme">
+        {#if isDarkMode} 🌙 {:else} ☀️ {/if}
+      </button>
     </nav>
   </header>
 
@@ -186,7 +197,7 @@
   .stage-nav {
     display: flex;
     gap: 6px;
-    background: #f8fafc;
+    background: var(--bg-chassis);
     padding: 4px;
     border-radius: 8px;
     border: 1px solid var(--card-border);
@@ -209,7 +220,7 @@
 
   .stage-tab:hover {
     color: var(--text-main);
-    background: #e2e8f0;
+    background: var(--card-border);
   }
 
   .stage-tab.active {
@@ -228,7 +239,7 @@
     height: 16px;
     border-radius: 50%;
     font-size: 0.65rem;
-    background: #e2e8f0;
+    background: var(--card-border);
   }
 
   .stage-tab.active .badge {
@@ -245,18 +256,34 @@
     font-size: 0.75rem;
     font-weight: 600;
     font-family: var(--font-mono);
-    color: #fff;
-    background: linear-gradient(135deg, #61afef, #c678dd);
-    border: none;
+    color: var(--accent-vis);
+    background: transparent;
+    border: 1px solid var(--accent-vis);
     border-radius: 5px;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.15s ease;
   }
 
   .tour-btn:hover {
+    background: var(--accent-vis-light);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(198, 120, 221, 0.3);
   }
+
+  .theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    background: transparent;
+    border: 1px solid var(--card-border);
+    cursor: pointer;
+    margin-left: 4px;
+    transition: background 0.15s;
+    color: var(--text-main);
+  }
+  .theme-btn:hover { background: var(--card-border); }
 
   /* ── Workspace ── */
   .workspace {
@@ -323,7 +350,7 @@
   }
 
   .eq-display {
-    background: #f8fafc;
+    background: var(--bg-chassis);
     border-radius: 12px;
     padding: 12px 32px;
     width: 100%;
@@ -334,6 +361,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-main);
   }
 
   .eq-caption {

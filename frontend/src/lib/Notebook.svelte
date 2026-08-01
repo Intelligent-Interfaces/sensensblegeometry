@@ -96,16 +96,17 @@
   });
 </script>
 
-<div class="floating-notebook" class:closed={!isOpen}>
-  <div class="header">
-    <div class="title-row">
-      <h2>Analytical Notebook</h2>
-      <button class="toggle-btn" onclick={() => isOpen = !isOpen}>
-        {isOpen ? '→' : '←'}
-      </button>
-    </div>
-    
-    {#if isOpen}
+
+<div class="notebook-container">
+  <button class="toggle-handle" onclick={() => isOpen = !isOpen}>
+    {isOpen ? '›' : '‹'}
+  </button>
+  <div class="notebook-pane" class:collapsed={!isOpen}>
+    <div class="header">
+      <div class="title-row">
+        <h2>Analytical Notebook</h2>
+      </div>
+      
       <div class="toolbar">
         <div class="lang-toggle">
           <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
@@ -115,35 +116,65 @@
           {isGenerating ? 'Generating...' : '✨ Generate'}
         </button>
       </div>
-    {/if}
+    </div>
+    
+    <div class="editor-host" bind:this={editorElement}></div>
   </div>
-  
-  <div class="editor-host" bind:this={editorElement} style:display={isOpen ? 'block' : 'none'}></div>
 </div>
 
 <style>
-  .floating-notebook {
+  .notebook-container {
     position: absolute;
-    top: 70px;
-    right: 20px;
+    top: 16px;
+    right: 16px;
+    height: calc(100vh - 32px);
+    display: flex;
+    align-items: flex-start;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .toggle-handle {
+    pointer-events: auto;
+    background: rgba(40, 44, 52, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 12px 6px;
+    cursor: pointer;
+    color: #abb2bf;
+    font-size: 1.2rem;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+    transition: background 0.2s, color 0.2s;
+    margin-top: 16px;
+    z-index: 101;
+  }
+
+  .toggle-handle:hover {
+    background: #4d93d3;
+    color: white;
+  }
+
+  .notebook-pane {
+    pointer-events: auto;
     width: 400px;
-    height: calc(100vh - 170px);
+    height: 100%;
     background: rgba(33, 37, 43, 0.95);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    border-radius: 12px 0 12px 12px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
-    z-index: 100;
-    transition: width 0.3s cubic-bezier(0.25, 1.5, 0.5, 1);
     overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    transform-origin: right;
   }
 
-  .floating-notebook.closed {
-    width: 48px;
-    height: 48px;
-    min-height: 48px;
+  .notebook-pane.collapsed {
+    transform: translateX(110%);
+    opacity: 0;
+    pointer-events: none;
   }
 
   .header {
