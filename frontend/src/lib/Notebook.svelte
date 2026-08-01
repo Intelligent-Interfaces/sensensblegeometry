@@ -79,20 +79,24 @@
   let codeED = `# Example 02: Electrodynamics\n# Electromagnetic field F = E + I*B\nE <- 3 * e1 + 1 * e2\nB <- 2 * e2 - 4 * e3`;
   let codeOE = `# Example 03: Optoelectronics\n# Polarization state\nE_x <- 2 * e1\nE_y <- 2 * e2\nphase <- E_x %^% E_y`;
 
-  let codePython = `import torch\nimport versor\n\n# Geometric NC environment\ndef analyze_geometry(state):\n    # Predict geometric flux\n    return state.calculate_flux()`;
+  let codePythonGA = `# Example 01: GA Basics (Python)\nimport versor as vr\n\n# Define two vectors in Cl(3,0)\nv1 = 5 * vr.e1\nv2 = 3 * vr.e2\n\n# Compute their Wedge Product (Bivector)\nB = v1 ^ v2`;
+  let codePythonED = `# Example 02: Electrodynamics (Python)\nimport versor as vr\n\n# Electromagnetic field F = E + I*B\nE = 3 * vr.e1 + 1 * vr.e2\nB = 2 * vr.e2 - 4 * vr.e3`;
+  let codePythonOE = `# Example 03: Optoelectronics (Python)\nimport versor as vr\n\n# Polarization state\nE_x = 2 * vr.e1\nE_y = 2 * vr.e2\nphase = E_x ^ E_y`;
 
   let currentExample = $state('01');
   let codeR = $state(codeGA);
+  let codePython = $state(codePythonGA);
 
   let currentCode = $derived(currentLang === 'r' ? codeR : codePython);
 
   function loadExample(ex: string) {
     currentExample = ex;
-    if (ex === '01') codeR = codeGA;
-    if (ex === '02') codeR = codeED;
-    if (ex === '03') codeR = codeOE;
-    if (currentLang === 'r' && view) {
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: codeR } });
+    if (ex === '01') { codeR = codeGA; codePython = codePythonGA; }
+    if (ex === '02') { codeR = codeED; codePython = codePythonED; }
+    if (ex === '03') { codeR = codeOE; codePython = codePythonOE; }
+    if (view) {
+      const newCode = currentLang === 'r' ? codeR : codePython;
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: newCode } });
     }
   }
 
@@ -120,8 +124,9 @@
     if (!view) return;
     currentLang = lang;
     
+    const newCode = lang === 'r' ? codeR : codePython;
     view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: currentCode },
+      changes: { from: 0, to: view.state.doc.length, insert: newCode },
       effects: languageConf.reconfigure(lang === 'r' ? StreamLanguage.define(r) : python())
     });
   };
@@ -129,19 +134,19 @@
   const runCode = () => {
     isGenerating = true;
     try {
-      if (canvasComponent && currentLang === 'r') {
+      if (canvasComponent) {
         canvasComponent.clearCanvas();
         const code = view.state.doc.toString();
         const lines = code.split('\n');
         
         lines.forEach(line => {
-          const isAssignment = line.includes('<-');
+          const isAssignment = line.includes('<-') || line.includes('=');
           if (isAssignment) {
              let x=0, y=0, z=0;
-             const terms = line.match(/[-+]?\s*[0-9.]*\s*\*?\s*e[123]/g);
+             const terms = line.match(/[-+]?\s*[0-9.]*\s*\*?\s*(?:vr\.)?e[123]/g);
              if (terms) {
                terms.forEach(term => {
-                  let str = term.replace(/\s/g, '').replace('*', '');
+                  let str = term.replace(/\s/g, '').replace('*', '').replace('vr.', '');
                   let val = parseFloat(str);
                   if (isNaN(val)) val = str.startsWith('-') ? -1 : 1;
                   
@@ -155,7 +160,7 @@
              }
              
              // Detect wedge product
-             if (line.includes('%^%')) {
+             if (line.includes('%^%') || line.includes('^')) {
                canvasComponent.computeProduct('wedge');
              }
           }
@@ -272,13 +277,11 @@
               <button class:active={currentLang === 'r'} onclick={() => setLanguage('r')}>R</button>
               <button class:active={currentLang === 'python'} onclick={() => setLanguage('python')}>Python</button>
             </div>
-            {#if currentLang === 'r'}
-              <select class="example-select" value={currentExample} onchange={(e) => loadExample((e.target as HTMLSelectElement).value)}>
-                <option value="01">01: GA Basics</option>
-                <option value="02">02: Electrodynamics</option>
-                <option value="03">03: Optoelectronics</option>
-              </select>
-            {/if}
+            <select class="example-select" value={currentExample} onchange={(e) => loadExample((e.target as HTMLSelectElement).value)}>
+              <option value="01">01: GA Basics</option>
+              <option value="02">02: Electrodynamics</option>
+              <option value="03">03: Optoelectronics</option>
+            </select>
           </div>
           <button class="generate-btn" onclick={runCode} disabled={isGenerating}>
             {#if isGenerating}
