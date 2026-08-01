@@ -85,6 +85,12 @@
     }
   });
 
+  $effect(() => {
+    if (isOpen) {
+      tourState.reportAction('console_opened');
+    }
+  });
+
   const setLanguage = (lang: 'r' | 'python') => {
     if (!view) return;
     currentLang = lang;

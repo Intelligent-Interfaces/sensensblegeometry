@@ -36,8 +36,14 @@
     
     tourState.startTour([
       {
+        title: 'Open the Console',
+        text: 'Welcome to Cl(3,0). To start building geometry, we need our controls. Click the drawer handle at the bottom of the screen to open the IDE console.',
+        actionRequired: 'console_opened',
+        highlightElement: 'math-header'
+      },
+      {
         title: 'The Birth of a Bivector',
-        text: 'Welcome to Cl(3,0). Let’s build some geometry from scratch. First, we need an empty canvas.',
+        text: 'Now that we have our controls, let’s build some geometry from scratch. First, let’s clear the canvas.',
         autoAction: () => document.getElementById('clear-btn')?.click()
       },
       {
@@ -52,7 +58,7 @@
       },
       {
         title: 'Creating the Plane',
-        text: 'In Geometric Algebra, we multiply vectors to create higher-dimensional objects. Click the highlighted Wedge button to form an oriented plane!',
+        text: 'In Geometric Algebra, we multiply vectors to create higher-dimensional objects. Click the highlighted Wedge button in the console to form an oriented plane!',
         actionRequired: 'wedge_clicked',
         highlightElement: 'btn-wedge'
       },

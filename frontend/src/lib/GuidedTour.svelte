@@ -92,6 +92,7 @@
 
   .tour-body p {
     margin: 0;
+    text-align: justify;
   }
 
   .tour-footer {
