@@ -24,13 +24,13 @@ jobs:
       - name: Compile Platform Architecture Paper
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: research/sensensble_geometry_platform.tex
+          root_file: sensensble_geometry_platform.tex
           working_directory: research
 
       - name: Compile Basis Expansion Paper
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: research/basis_expansion_duality.tex
+          root_file: basis_expansion_duality.tex
           working_directory: research
 
       - name: Upload Platform Paper Artifact
