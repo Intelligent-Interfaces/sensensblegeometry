@@ -139,3 +139,33 @@ impl SimulationState {
         self.objects.clear();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_e1_squared_is_1() {
+        let e1 = Multivector::vector(1.0, 0.0, 0.0);
+        let e1_sq = e1.geometric_product(&e1);
+        
+        // e1^2 = 1 (scalar)
+        assert_eq!(e1_sq.data[0], 1.0);
+        assert_eq!(e1_sq.data[1], 0.0);
+    }
+
+    #[test]
+    fn test_e1_e2_anticommute() {
+        let e1 = Multivector::vector(1.0, 0.0, 0.0);
+        let e2 = Multivector::vector(0.0, 1.0, 0.0);
+        
+        let e12 = e1.geometric_product(&e2);
+        let e21 = e2.geometric_product(&e1);
+        
+        // e1 e2 = e12
+        assert_eq!(e12.data[4], 1.0);
+        
+        // e2 e1 = -e12
+        assert_eq!(e21.data[4], -1.0);
+    }
+}
