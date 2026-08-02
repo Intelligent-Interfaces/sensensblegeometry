@@ -45,6 +45,7 @@ jobs:
         uses: arduino/setup-protoc@v3
       - name: Validate Protobuf Schema
         run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           mkdir -p temp_out
           protoc --python_out=temp_out --go_out=temp_out backend/proto/geometry.proto
       - name: Run golangci-lint
