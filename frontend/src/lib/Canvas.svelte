@@ -21,9 +21,11 @@
 
 
 
-  onMount(async () => {
-    await init();
-    simState = new SimulationState();
+  let resizeObserver: ResizeObserver;
+
+  onMount(() => {
+    init().then(() => {
+      simState = new SimulationState();
 
     // ── Three.js Setup ──
     scene = new THREE.Scene();
@@ -132,7 +134,7 @@
     };
     animate();
 
-    const resizeObserver = new ResizeObserver(() => {
+    resizeObserver = new ResizeObserver(() => {
       if (!canvasElement || !camera || !renderer) return;
       const w = canvasElement.clientWidth;
       const h = canvasElement.clientHeight;
@@ -143,14 +145,14 @@
     });
     
     resizeObserver.observe(canvasElement);
-    
-    return () => resizeObserver.disconnect();
+    });
   });
 
   onDestroy(() => {
     cancelAnimationFrame(animationFrameId);
     if (renderer) renderer.dispose();
     if (simState) simState.free();
+    if (resizeObserver) resizeObserver.disconnect();
   });
 
   $effect(() => {
@@ -174,7 +176,7 @@
   };
 
   export const addExplicitMultivector = (s: number, e1: number, e2: number, e3: number, e12: number, e23: number, e31: number, e123: number) => {
-    if (simState) simState.add_object(Multivector.new(s, e1, e2, e3, e12, e23, e31, e123));
+    if (simState) simState.add_object(new Multivector(s, e1, e2, e3, e12, e23, e31, e123));
   };
   export const computeProduct = (type: 'geometric' | 'wedge' | 'inner') => {
     if (simState && simState.object_count() >= 2) {

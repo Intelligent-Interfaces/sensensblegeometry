@@ -81,7 +81,7 @@
 
   function toggleTour() {
     if (tourState.isActive) {
-      tourState.closeTour();
+      tourState.stopTour();
     } else {
       startBivectorTour();
     }
