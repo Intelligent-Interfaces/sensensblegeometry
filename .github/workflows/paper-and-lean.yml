@@ -16,22 +16,34 @@ on:
 
 jobs:
   paper:
-    name: Compile & Publish LaTeX Paper
+    name: Compile & Publish LaTeX Papers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compile IEEE LaTeX Paper
+      - name: Compile Platform Architecture Paper
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: research/draft_002.tex
+          root_file: research/sensensble_geometry_platform.tex
           working_directory: research
 
-      - name: Upload PDF Artifact
+      - name: Compile Basis Expansion Paper
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: research/basis_expansion_duality.tex
+          working_directory: research
+
+      - name: Upload Platform Paper Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Sensensble-Geometry-IEEE-Paper
-          path: research/draft_002.pdf
+          name: Sensensble-Geometry-Platform-Paper
+          path: research/sensensble_geometry_platform.pdf
+
+      - name: Upload Duality Paper Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Basis-Expansion-Duality-Paper
+          path: research/basis_expansion_duality.pdf
 
   lean:
     name: Verify Lean 4 Clifford Algebra Proofs
