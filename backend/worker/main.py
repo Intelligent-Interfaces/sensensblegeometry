@@ -1,11 +1,11 @@
-import grpc
-from concurrent import futures
 import time
-import torch
+from concurrent import futures
+
+import grpc
 
 # Import generated protobuf files
-from proto import geometry_pb2
-from proto import geometry_pb2_grpc
+from proto import geometry_pb2, geometry_pb2_grpc
+
 
 class AnalysisServiceServicer(geometry_pb2_grpc.AnalysisServiceServicer):
     def AnalyzeState(self, request, context):
