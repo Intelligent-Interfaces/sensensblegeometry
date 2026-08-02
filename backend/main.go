@@ -66,15 +66,18 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request, grpcClient pb.Analy
 		res, err := grpcClient.AnalyzeState(context.Background(), req)
 		if err != nil {
 			log.Println("grpc call error:", err)
-			conn.WriteJSON(map[string]string{"status": "error", "message": err.Error()})
+			_ = conn.WriteJSON(map[string]string{"status": "error", "message": err.Error()})
 			continue
 		}
 
 		// Send back to client
-		conn.WriteJSON(map[string]string{
+		if err := conn.WriteJSON(map[string]string{
 			"status": res.Status,
 			"code":   res.Code,
-		})
+		}); err != nil {
+			log.Println("websocket write error:", err)
+			break
+		}
 	}
 }
 
@@ -94,7 +97,7 @@ func main() {
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	// Add WebSocket endpoint (outside auth middleware since standard WebSockets can't send Headers easily)
