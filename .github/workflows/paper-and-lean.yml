@@ -1,0 +1,52 @@
+name: Paper Compilation & Lean Formalization CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'research/**'
+      - 'proofs/**'
+      - '.github/workflows/paper-and-lean.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'research/**'
+      - 'proofs/**'
+      - '.github/workflows/paper-and-lean.yml'
+
+jobs:
+  paper:
+    name: Compile & Publish LaTeX Paper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile IEEE LaTeX Paper
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: research/draft_002.tex
+          working_directory: research
+
+      - name: Upload PDF Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sensensble-Geometry-IEEE-Paper
+          path: research/draft_002.pdf
+
+  lean:
+    name: Verify Lean 4 Clifford Algebra Proofs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Elan (Lean version manager)
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:stable
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: Lean 4 Environment Info
+        run: lean --version
+
+      # When proofs/ lakefile.lean is present:
+      # - name: Build & Verify Lean Proofs
+      #   run: cd proofs && lake build
