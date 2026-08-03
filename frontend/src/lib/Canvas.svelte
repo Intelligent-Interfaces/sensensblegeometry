@@ -22,9 +22,31 @@
 
 
     import { RobotArm, type RobotType } from './RobotArm';
-  let robotArm: RobotArm;
+  let robotArm: RobotArm | undefined = $state();
   let activeRobotType: RobotType = $state("KUKA_LBR_iiwa");
   let resizeObserver: ResizeObserver;
+
+  // Joint control state
+  let jointAngles: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
+  let selectedLink: number = $state(-2); // -2 = all, -1 = none, 0 = base, 1+ = links
+  let panelOpen: boolean = $state(false);
+
+  const PALETTE = [
+    { hex: 0xffffff, css: '#ffffff', name: 'Ceramic' },
+    { hex: 0xff5e00, css: '#ff5e00', name: 'KUKA' },
+    { hex: 0x005b9f, css: '#005b9f', name: 'UR Blue' },
+    { hex: 0x1e293b, css: '#1e293b', name: 'Onyx' },
+    { hex: 0xc084fc, css: '#c084fc', name: 'Violet' },
+    { hex: 0x3b8686, css: '#3b8686', name: 'Aurora' },
+    { hex: 0xe07a5f, css: '#e07a5f', name: 'Sunset' },
+    { hex: 0xf2cc8f, css: '#f2cc8f', name: 'Gold' },
+    { hex: 0x6b8f71, css: '#6b8f71', name: 'Moss' },
+    { hex: 0xd4618c, css: '#d4618c', name: 'Rose' },
+  ];
+
+  function applyJoints() {
+    robotArm?.setJointAngles(jointAngles);
+  }
 
   function swapRobot(newType: RobotType) {
     if (!scene) return;
@@ -41,6 +63,7 @@
       scene.remove(robotArm.group);
     }
     robotArm = new RobotArm(newType);
+    selectedLink = -2; // Reset color selection to "All"
     scene.add(robotArm.group);
   }
 
@@ -245,11 +268,12 @@
   <!-- Three.js mount point -->
   <div class="canvas-container" bind:this={canvasElement}></div>
   
+  <!-- Bottom: Robot Model Switcher -->
   <div class="robot-switcher">
     <button
       class="robot-pill"
       class:active={activeRobotType === "KUKA_LBR_iiwa"}
-      onclick={() => { activeRobotType = "KUKA_LBR_iiwa"; swapRobot("KUKA_LBR_iiwa"); }}
+      onclick={() => { activeRobotType = "KUKA_LBR_iiwa"; swapRobot("KUKA_LBR_iiwa"); jointAngles = [0,0,0,0,0,0,0]; }}
     >
       <span class="pill-label">KUKA iiwa</span>
       <span class="pill-dof">7-DOF</span>
@@ -257,7 +281,7 @@
     <button
       class="robot-pill"
       class:active={activeRobotType === "Franka_Panda"}
-      onclick={() => { activeRobotType = "Franka_Panda"; swapRobot("Franka_Panda"); }}
+      onclick={() => { activeRobotType = "Franka_Panda"; swapRobot("Franka_Panda"); jointAngles = [0,0,0,0,0,0,0]; }}
     >
       <span class="pill-label">Panda</span>
       <span class="pill-dof">7-DOF</span>
@@ -265,34 +289,93 @@
     <button
       class="robot-pill"
       class:active={activeRobotType === "UR5"}
-      onclick={() => { activeRobotType = "UR5"; swapRobot("UR5"); }}
+      onclick={() => { activeRobotType = "UR5"; swapRobot("UR5"); jointAngles = [0,0,0,0,0,0]; }}
     >
       <span class="pill-label">UR5</span>
       <span class="pill-dof">6-DOF</span>
     </button>
 
     <div class="switcher-divider"></div>
-
-    {#each [
-      { hex: 0xffffff, css: '#ffffff', label: 'Ceramic' },
-      { hex: 0xff5e00, css: '#ff5e00', label: 'KUKA' },
-      { hex: 0x005b9f, css: '#005b9f', label: 'UR' },
-      { hex: 0x1e293b, css: '#1e293b', label: 'Onyx' },
-      { hex: 0xc084fc, css: '#c084fc', label: 'Violet' },
-    ] as swatch}
-      <button
-        class="color-swatch"
-        style="--swatch-color: {swatch.css}"
-        title={swatch.label}
-        onclick={() => robotArm?.setColor(swatch.hex)}
-      ></button>
-    {/each}
-    <button
-      class="color-swatch reset-swatch"
-      title="Original"
-      onclick={() => robotArm?.setColor(null)}
-    >↺</button>
+    
+    <button class="robot-pill" class:active={panelOpen} onclick={() => panelOpen = !panelOpen}>
+      <span class="pill-label">⚙</span>
+      <span class="pill-dof">CTRL</span>
+    </button>
   </div>
+
+  <!-- Right: Control Panel (OP-1 Field style) -->
+  {#if panelOpen}
+    <div class="ctrl-panel">
+      <div class="ctrl-header">
+        <span class="ctrl-title">Robot Control</span>
+        <button class="ctrl-close" onclick={() => panelOpen = false}>✕</button>
+      </div>
+
+      <!-- Joint Sliders -->
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">Joint Angles</span>
+        {#each jointAngles as angle, i}
+          <div class="joint-row">
+            <span class="joint-label">J{i + 1}</span>
+            <input
+              type="range"
+              class="joint-slider"
+              min={-3.14}
+              max={3.14}
+              step={0.01}
+              bind:value={jointAngles[i]}
+              oninput={applyJoints}
+            />
+            <span class="joint-value">{angle.toFixed(1)}°</span>
+          </div>
+        {/each}
+        <button class="ctrl-btn" onclick={() => { jointAngles = jointAngles.map(() => 0); applyJoints(); }}>
+          Reset Joints
+        </button>
+      </div>
+
+      <!-- Per-Link Color -->
+      <div class="ctrl-section">
+        <span class="ctrl-section-label">Link Color</span>
+        <div class="link-selector">
+          <button
+            class="link-chip"
+            class:active={selectedLink === -2}
+            onclick={() => selectedLink = -2}
+          >All</button>
+          {#each robotArm?.getLinkNames() ?? [] as name, i}
+            <button
+              class="link-chip"
+              class:active={selectedLink === i}
+              onclick={() => selectedLink = i}
+            >{name}</button>
+          {/each}
+        </div>
+
+        <div class="swatch-grid">
+          {#each PALETTE as swatch}
+            <button
+              class="color-swatch"
+              style="--swatch-color: {swatch.css}"
+              title={swatch.name}
+              onclick={() => {
+                if (selectedLink === -2) robotArm?.setColor(swatch.hex);
+                else if (selectedLink >= 0) robotArm?.setLinkColor(selectedLink, swatch.hex);
+              }}
+            ></button>
+          {/each}
+          <button
+            class="color-swatch reset-swatch"
+            title="Original"
+            onclick={() => {
+              if (selectedLink === -2) robotArm?.setColor(null);
+              else if (selectedLink >= 0) robotArm?.setLinkColor(selectedLink, null);
+            }}
+          ></button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -308,6 +391,7 @@
     height: 100%;
   }
 
+  /* ── Bottom Switcher ── */
   .robot-switcher {
     position: absolute;
     bottom: 20px;
@@ -322,6 +406,7 @@
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     pointer-events: auto;
+    align-items: center;
   }
 
   .robot-pill {
@@ -338,63 +423,198 @@
     transition: all 0.2s ease;
     font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
   }
-
   .robot-pill:hover {
     color: rgba(255, 255, 255, 0.85);
     background: rgba(255, 255, 255, 0.08);
   }
-
   .robot-pill.active {
     background: rgba(255, 255, 255, 0.15);
     color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
-
-  .pill-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-  }
-
-  .pill-dof {
-    font-size: 0.6rem;
-    opacity: 0.6;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
+  .pill-label { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.03em; }
+  .pill-dof { font-size: 0.6rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.08em; }
 
   .switcher-divider {
     width: 1px;
     height: 28px;
     background: rgba(255, 255, 255, 0.15);
     margin: 0 6px;
-    align-self: center;
   }
 
-  .color-swatch {
+  /* ── Right Control Panel (OP-1 Field inspired) ── */
+  .ctrl-panel {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 260px;
+    max-height: calc(100% - 80px);
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .ctrl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .ctrl-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .ctrl-close {
+    appearance: none;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .ctrl-close:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+  .ctrl-section {
+    margin-bottom: 18px;
+  }
+  .ctrl-section-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 10px;
+  }
+
+  /* Joint sliders */
+  .joint-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .joint-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
     width: 22px;
-    height: 22px;
+    text-align: right;
+  }
+  .joint-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+    cursor: pointer;
+  }
+  .joint-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: grab;
+  }
+  .joint-value {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ctrl-btn {
+    width: 100%;
+    padding: 6px 0;
+    margin-top: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Link selector chips */
+  .link-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .link-chip {
+    padding: 3px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 9px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: lowercase;
+  }
+  .link-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .link-chip.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Color swatches */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .color-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
     background: var(--swatch-color);
     cursor: pointer;
     transition: all 0.15s ease;
     padding: 0;
-    flex-shrink: 0;
   }
-
   .color-swatch:hover {
-    transform: scale(1.2);
-    border-color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 0 8px var(--swatch-color);
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 12px var(--swatch-color);
   }
-
   .reset-swatch {
     background: conic-gradient(#ff5e00, #c084fc, #005b9f, #1e293b, #ffffff, #ff5e00);
     font-size: 0;
     position: relative;
   }
-
   .reset-swatch::after {
     content: '↺';
     position: absolute;
@@ -402,7 +622,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     color: white;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   }

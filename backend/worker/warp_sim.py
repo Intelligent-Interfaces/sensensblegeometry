@@ -1,15 +1,5 @@
 import math
-
-
-try:
-    import warp as wp
-    wp.init()
-    HAS_WARP = True
-except Exception as e:  # noqa: BLE001
-    print(f"NVIDIA Warp initialization warning: {e}. Falling back to PyTorch/NumPy acceleration.")
-    HAS_WARP = False
-
-
+from typing import ClassVar
 
 try:
     import warp as wp
@@ -18,7 +8,6 @@ try:
 except Exception as e:  # noqa: BLE001
     print(f"NVIDIA Warp initialization warning: {e}. Falling back to PyTorch/NumPy acceleration.")
     HAS_WARP = False
-
 
 if HAS_WARP:
     @wp.func
@@ -88,7 +77,7 @@ if HAS_WARP:
 class WarpRoboticsEngine:
     """GPU/CPU Accelerated Kinematics Engine using Geometric Algebra Motor Algebra."""
     
-    ROBOTS = {
+    ROBOTS: ClassVar[dict] = {
         "KUKA_LBR_iiwa": {
             "num_joints": 7,
             "link_lengths": [0.340, 0.400, 0.400, 0.400, 0.400, 0.126, 0.0],
