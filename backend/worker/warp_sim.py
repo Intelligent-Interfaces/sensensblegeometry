@@ -64,8 +64,8 @@ if HAS_WARP:
         # Parallel kernel execution across multiple robot instances if batched,
         # but here we just compute for one robot
         if tid == 0:
-            current_x = float(0.0)
-            current_y = float(0.0)
+            current_x = float(0.0)  # noqa: UP018
+            current_y = float(0.0)  # noqa: UP018
             current_z = float(link_lengths[0])
             
             for i in range(angles.shape[0]):
