@@ -26,21 +26,37 @@ if HAS_WARP:
             return wp.vec4(c, 0.0, 0.0, -s) # y / e31
         return wp.vec4(1.0, 0.0, 0.0, 0.0)
 
+    @wp.struct
+    class PGAMotor:
+        r_s: float
+        r_e12: float
+        r_e23: float
+        r_e31: float
+        t_x: float
+        t_y: float
+        t_z: float
+        d_e0123: float
+
     @wp.func
-    def pga_motor_wp(rotor: wp.vec4, tx: float, ty: float, tz: float) -> wp.vec(8, dtype=float):
+    def pga_motor_wp(rotor: wp.vec4, tx: float, ty: float, tz: float) -> PGAMotor:
         """Create a 3D PGA Motor M = R + (1/2) * t * R * e_infinity."""
-        # For simplicity, returning just the 8 parameters: [R_s, R_e12, R_e23, R_e31, t_x, t_y, t_z, d_e0123]
-        return wp.vec(8, dtype=float)(
-            rotor[0], rotor[1], rotor[2], rotor[3],
-            0.5 * tx, 0.5 * ty, 0.5 * tz, 0.0
-        )
+        motor = PGAMotor()
+        motor.r_s = rotor[0]
+        motor.r_e12 = rotor[1]
+        motor.r_e23 = rotor[2]
+        motor.r_e31 = rotor[3]
+        motor.t_x = 0.5 * tx
+        motor.t_y = 0.5 * ty
+        motor.t_z = 0.5 * tz
+        motor.d_e0123 = 0.0
+        return motor
 
     @wp.kernel
     def compute_fk_kernel(
         angles: wp.array(dtype=float),
         axes: wp.array(dtype=int),
         link_lengths: wp.array(dtype=float),
-        motors: wp.array(dtype=wp.vec(8, dtype=float)),
+        motors: wp.array(dtype=PGAMotor),
         ee_pos: wp.array(dtype=wp.vec3)
     ):
         tid = wp.tid()
@@ -117,7 +133,7 @@ class WarpRoboticsEngine:
         
         if HAS_WARP:
             wp_angles = wp.array(joint_angles, dtype=float)
-            wp_motors = wp.empty(shape=self.num_joints, dtype=wp.vec(8, dtype=float))
+            wp_motors = wp.empty(shape=self.num_joints, dtype=PGAMotor)
             wp_ee_pos = wp.empty(shape=1, dtype=wp.vec3)
             
             wp.launch(
@@ -126,7 +142,12 @@ class WarpRoboticsEngine:
                 inputs=[wp_angles, self.wp_axes, self.wp_link_lengths, wp_motors, wp_ee_pos]
             )
             
-            motors_np = wp_motors.numpy()
+            # Convert structs to list of lists for JSON serialization
+            raw_motors = wp_motors.list()
+            motors_np = []
+            for m in raw_motors:
+                motors_np.append([m.r_s, m.r_e12, m.r_e23, m.r_e31, m.t_x, m.t_y, m.t_z, m.d_e0123])
+            
             ee_pos_np = wp_ee_pos.numpy()[0]
         else:
             # CPU Fallback
