@@ -21,7 +21,28 @@
 
 
 
+    import { RobotArm, type RobotType } from './RobotArm';
+  let robotArm: RobotArm;
+  let activeRobotType: RobotType = $state("KUKA_LBR_iiwa");
   let resizeObserver: ResizeObserver;
+
+  function swapRobot(newType: RobotType) {
+    if (!scene) return;
+    if (robotArm) {
+      // Recursively dispose all meshes and materials in the old group
+      robotArm.group.traverse((child) => {
+        if ((child as THREE.Mesh).geometry) (child as THREE.Mesh).geometry.dispose();
+        if ((child as THREE.Mesh).material) {
+          const mat = (child as THREE.Mesh).material;
+          if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+          else (mat as THREE.Material).dispose();
+        }
+      });
+      scene.remove(robotArm.group);
+    }
+    robotArm = new RobotArm(newType);
+    scene.add(robotArm.group);
+  }
 
   onMount(() => {
     init().then(() => {
@@ -30,6 +51,13 @@
     // ── Three.js Setup ──
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc); // light chassis
+
+    // Add lighting for standard materials
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
 
     const width = canvasElement.clientWidth;
     const height = canvasElement.clientHeight;
@@ -46,6 +74,10 @@
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+
+    // Add initial robot
+    robotArm = new RobotArm(activeRobotType);
+    scene.add(robotArm.group);
 
     // Grid & axes
     const grid = new THREE.GridHelper(10, 10, 0xcbd5e1, 0xe2e8f0);
@@ -212,6 +244,55 @@
 <div class="canvas-wrapper">
   <!-- Three.js mount point -->
   <div class="canvas-container" bind:this={canvasElement}></div>
+  
+  <div class="robot-switcher">
+    <button
+      class="robot-pill"
+      class:active={activeRobotType === "KUKA_LBR_iiwa"}
+      onclick={() => { activeRobotType = "KUKA_LBR_iiwa"; swapRobot("KUKA_LBR_iiwa"); }}
+    >
+      <span class="pill-label">KUKA iiwa</span>
+      <span class="pill-dof">7-DOF</span>
+    </button>
+    <button
+      class="robot-pill"
+      class:active={activeRobotType === "Franka_Panda"}
+      onclick={() => { activeRobotType = "Franka_Panda"; swapRobot("Franka_Panda"); }}
+    >
+      <span class="pill-label">Panda</span>
+      <span class="pill-dof">7-DOF</span>
+    </button>
+    <button
+      class="robot-pill"
+      class:active={activeRobotType === "UR5"}
+      onclick={() => { activeRobotType = "UR5"; swapRobot("UR5"); }}
+    >
+      <span class="pill-label">UR5</span>
+      <span class="pill-dof">6-DOF</span>
+    </button>
+
+    <div class="switcher-divider"></div>
+
+    {#each [
+      { hex: 0xffffff, css: '#ffffff', label: 'Ceramic' },
+      { hex: 0xff5e00, css: '#ff5e00', label: 'KUKA' },
+      { hex: 0x005b9f, css: '#005b9f', label: 'UR' },
+      { hex: 0x1e293b, css: '#1e293b', label: 'Onyx' },
+      { hex: 0xc084fc, css: '#c084fc', label: 'Violet' },
+    ] as swatch}
+      <button
+        class="color-swatch"
+        style="--swatch-color: {swatch.css}"
+        title={swatch.label}
+        onclick={() => robotArm?.setColor(swatch.hex)}
+      ></button>
+    {/each}
+    <button
+      class="color-swatch reset-swatch"
+      title="Original"
+      onclick={() => robotArm?.setColor(null)}
+    >↺</button>
+  </div>
 </div>
 
 <style>
@@ -226,4 +307,104 @@
     width: 100%;
     height: 100%;
   }
+
+  .robot-switcher {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 4px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+  }
+
+  .robot-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+  }
+
+  .robot-pill:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .robot-pill.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .pill-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .pill-dof {
+    font-size: 0.6rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .switcher-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 6px;
+    align-self: center;
+  }
+
+  .color-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: var(--swatch-color);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 8px var(--swatch-color);
+  }
+
+  .reset-swatch {
+    background: conic-gradient(#ff5e00, #c084fc, #005b9f, #1e293b, #ffffff, #ff5e00);
+    font-size: 0;
+    position: relative;
+  }
+
+  .reset-swatch::after {
+    content: '↺';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
 </style>
+
