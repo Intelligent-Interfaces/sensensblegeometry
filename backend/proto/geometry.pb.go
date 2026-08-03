@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.1
-// source: proto/geometry.proto
+// source: backend/proto/geometry.proto
 
 package proto
 
@@ -32,7 +32,7 @@ type GeometricState struct {
 
 func (x *GeometricState) Reset() {
 	*x = GeometricState{}
-	mi := &file_proto_geometry_proto_msgTypes[0]
+	mi := &file_backend_proto_geometry_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *GeometricState) String() string {
 func (*GeometricState) ProtoMessage() {}
 
 func (x *GeometricState) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_geometry_proto_msgTypes[0]
+	mi := &file_backend_proto_geometry_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *GeometricState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GeometricState.ProtoReflect.Descriptor instead.
 func (*GeometricState) Descriptor() ([]byte, []int) {
-	return file_proto_geometry_proto_rawDescGZIP(), []int{0}
+	return file_backend_proto_geometry_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GeometricState) GetId() string {
@@ -74,18 +74,141 @@ func (x *GeometricState) GetData() []float32 {
 	return nil
 }
 
+// Joint state for articulated robot arm
+type JointState struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Angle         float32                `protobuf:"fixed32,2,opt,name=angle,proto3" json:"angle,omitempty"`
+	MotorData     []float32              `protobuf:"fixed32,3,rep,packed,name=motor_data,json=motorData,proto3" json:"motor_data,omitempty"` // PGA Motor [R_s, R_12, R_23, R_31, d_e0, d_e012, d_e023, d_e031]
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JointState) Reset() {
+	*x = JointState{}
+	mi := &file_backend_proto_geometry_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JointState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JointState) ProtoMessage() {}
+
+func (x *JointState) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_geometry_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JointState.ProtoReflect.Descriptor instead.
+func (*JointState) Descriptor() ([]byte, []int) {
+	return file_backend_proto_geometry_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *JointState) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *JointState) GetAngle() float32 {
+	if x != nil {
+		return x.Angle
+	}
+	return 0
+}
+
+func (x *JointState) GetMotorData() []float32 {
+	if x != nil {
+		return x.MotorData
+	}
+	return nil
+}
+
+// Robot manipulator state
+type RobotState struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	RobotId         string                 `protobuf:"bytes,1,opt,name=robot_id,json=robotId,proto3" json:"robot_id,omitempty"`
+	Joints          []*JointState          `protobuf:"bytes,2,rep,name=joints,proto3" json:"joints,omitempty"`
+	EndEffectorPose *GeometricState        `protobuf:"bytes,3,opt,name=end_effector_pose,json=endEffectorPose,proto3" json:"end_effector_pose,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RobotState) Reset() {
+	*x = RobotState{}
+	mi := &file_backend_proto_geometry_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RobotState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RobotState) ProtoMessage() {}
+
+func (x *RobotState) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_proto_geometry_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RobotState.ProtoReflect.Descriptor instead.
+func (*RobotState) Descriptor() ([]byte, []int) {
+	return file_backend_proto_geometry_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RobotState) GetRobotId() string {
+	if x != nil {
+		return x.RobotId
+	}
+	return ""
+}
+
+func (x *RobotState) GetJoints() []*JointState {
+	if x != nil {
+		return x.Joints
+	}
+	return nil
+}
+
+func (x *RobotState) GetEndEffectorPose() *GeometricState {
+	if x != nil {
+		return x.EndEffectorPose
+	}
+	return nil
+}
+
 type AnalysisRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       string                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
 	Language      string                 `protobuf:"bytes,2,opt,name=language,proto3" json:"language,omitempty"`
 	Objects       []*GeometricState      `protobuf:"bytes,3,rep,name=objects,proto3" json:"objects,omitempty"`
+	Robot         *RobotState            `protobuf:"bytes,4,opt,name=robot,proto3" json:"robot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AnalysisRequest) Reset() {
 	*x = AnalysisRequest{}
-	mi := &file_proto_geometry_proto_msgTypes[1]
+	mi := &file_backend_proto_geometry_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +220,7 @@ func (x *AnalysisRequest) String() string {
 func (*AnalysisRequest) ProtoMessage() {}
 
 func (x *AnalysisRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_geometry_proto_msgTypes[1]
+	mi := &file_backend_proto_geometry_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +233,7 @@ func (x *AnalysisRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalysisRequest.ProtoReflect.Descriptor instead.
 func (*AnalysisRequest) Descriptor() ([]byte, []int) {
-	return file_proto_geometry_proto_rawDescGZIP(), []int{1}
+	return file_backend_proto_geometry_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AnalysisRequest) GetContext() string {
@@ -134,17 +257,25 @@ func (x *AnalysisRequest) GetObjects() []*GeometricState {
 	return nil
 }
 
+func (x *AnalysisRequest) GetRobot() *RobotState {
+	if x != nil {
+		return x.Robot
+	}
+	return nil
+}
+
 type AnalysisResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"` // Return the generated analysis code or physical properties
+	Robot         *RobotState            `protobuf:"bytes,3,opt,name=robot,proto3" json:"robot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AnalysisResponse) Reset() {
 	*x = AnalysisResponse{}
-	mi := &file_proto_geometry_proto_msgTypes[2]
+	mi := &file_backend_proto_geometry_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +287,7 @@ func (x *AnalysisResponse) String() string {
 func (*AnalysisResponse) ProtoMessage() {}
 
 func (x *AnalysisResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_geometry_proto_msgTypes[2]
+	mi := &file_backend_proto_geometry_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +300,7 @@ func (x *AnalysisResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalysisResponse.ProtoReflect.Descriptor instead.
 func (*AnalysisResponse) Descriptor() ([]byte, []int) {
-	return file_proto_geometry_proto_rawDescGZIP(), []int{2}
+	return file_backend_proto_geometry_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AnalysisResponse) GetStatus() string {
@@ -186,76 +317,102 @@ func (x *AnalysisResponse) GetCode() string {
 	return ""
 }
 
-var File_proto_geometry_proto protoreflect.FileDescriptor
+func (x *AnalysisResponse) GetRobot() *RobotState {
+	if x != nil {
+		return x.Robot
+	}
+	return nil
+}
 
-const file_proto_geometry_proto_rawDesc = "" +
+var File_backend_proto_geometry_proto protoreflect.FileDescriptor
+
+const file_backend_proto_geometry_proto_rawDesc = "" +
 	"\n" +
-	"\x14proto/geometry.proto\x12\bgeometry\"4\n" +
+	"\x1cbackend/proto/geometry.proto\x12\bgeometry\"4\n" +
 	"\x0eGeometricState\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04data\x18\x02 \x03(\x02R\x04data\"{\n" +
+	"\x04data\x18\x02 \x03(\x02R\x04data\"U\n" +
+	"\n" +
+	"JointState\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05angle\x18\x02 \x01(\x02R\x05angle\x12\x1d\n" +
+	"\n" +
+	"motor_data\x18\x03 \x03(\x02R\tmotorData\"\x9b\x01\n" +
+	"\n" +
+	"RobotState\x12\x19\n" +
+	"\brobot_id\x18\x01 \x01(\tR\arobotId\x12,\n" +
+	"\x06joints\x18\x02 \x03(\v2\x14.geometry.JointStateR\x06joints\x12D\n" +
+	"\x11end_effector_pose\x18\x03 \x01(\v2\x18.geometry.GeometricStateR\x0fendEffectorPose\"\xa7\x01\n" +
 	"\x0fAnalysisRequest\x12\x18\n" +
 	"\acontext\x18\x01 \x01(\tR\acontext\x12\x1a\n" +
 	"\blanguage\x18\x02 \x01(\tR\blanguage\x122\n" +
-	"\aobjects\x18\x03 \x03(\v2\x18.geometry.GeometricStateR\aobjects\">\n" +
+	"\aobjects\x18\x03 \x03(\v2\x18.geometry.GeometricStateR\aobjects\x12*\n" +
+	"\x05robot\x18\x04 \x01(\v2\x14.geometry.RobotStateR\x05robot\"j\n" +
 	"\x10AnalysisResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code2\xa2\x01\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12*\n" +
+	"\x05robot\x18\x03 \x01(\v2\x14.geometry.RobotStateR\x05robot2\xa2\x01\n" +
 	"\x0fAnalysisService\x12E\n" +
 	"\fAnalyzeState\x12\x19.geometry.AnalysisRequest\x1a\x1a.geometry.AnalysisResponse\x12H\n" +
 	"\vStreamState\x12\x19.geometry.AnalysisRequest\x1a\x1a.geometry.AnalysisResponse(\x010\x01B\tZ\a./protob\x06proto3"
 
 var (
-	file_proto_geometry_proto_rawDescOnce sync.Once
-	file_proto_geometry_proto_rawDescData []byte
+	file_backend_proto_geometry_proto_rawDescOnce sync.Once
+	file_backend_proto_geometry_proto_rawDescData []byte
 )
 
-func file_proto_geometry_proto_rawDescGZIP() []byte {
-	file_proto_geometry_proto_rawDescOnce.Do(func() {
-		file_proto_geometry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_geometry_proto_rawDesc), len(file_proto_geometry_proto_rawDesc)))
+func file_backend_proto_geometry_proto_rawDescGZIP() []byte {
+	file_backend_proto_geometry_proto_rawDescOnce.Do(func() {
+		file_backend_proto_geometry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_backend_proto_geometry_proto_rawDesc), len(file_backend_proto_geometry_proto_rawDesc)))
 	})
-	return file_proto_geometry_proto_rawDescData
+	return file_backend_proto_geometry_proto_rawDescData
 }
 
-var file_proto_geometry_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proto_geometry_proto_goTypes = []any{
+var file_backend_proto_geometry_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_backend_proto_geometry_proto_goTypes = []any{
 	(*GeometricState)(nil),   // 0: geometry.GeometricState
-	(*AnalysisRequest)(nil),  // 1: geometry.AnalysisRequest
-	(*AnalysisResponse)(nil), // 2: geometry.AnalysisResponse
+	(*JointState)(nil),       // 1: geometry.JointState
+	(*RobotState)(nil),       // 2: geometry.RobotState
+	(*AnalysisRequest)(nil),  // 3: geometry.AnalysisRequest
+	(*AnalysisResponse)(nil), // 4: geometry.AnalysisResponse
 }
-var file_proto_geometry_proto_depIdxs = []int32{
-	0, // 0: geometry.AnalysisRequest.objects:type_name -> geometry.GeometricState
-	1, // 1: geometry.AnalysisService.AnalyzeState:input_type -> geometry.AnalysisRequest
-	1, // 2: geometry.AnalysisService.StreamState:input_type -> geometry.AnalysisRequest
-	2, // 3: geometry.AnalysisService.AnalyzeState:output_type -> geometry.AnalysisResponse
-	2, // 4: geometry.AnalysisService.StreamState:output_type -> geometry.AnalysisResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+var file_backend_proto_geometry_proto_depIdxs = []int32{
+	1, // 0: geometry.RobotState.joints:type_name -> geometry.JointState
+	0, // 1: geometry.RobotState.end_effector_pose:type_name -> geometry.GeometricState
+	0, // 2: geometry.AnalysisRequest.objects:type_name -> geometry.GeometricState
+	2, // 3: geometry.AnalysisRequest.robot:type_name -> geometry.RobotState
+	2, // 4: geometry.AnalysisResponse.robot:type_name -> geometry.RobotState
+	3, // 5: geometry.AnalysisService.AnalyzeState:input_type -> geometry.AnalysisRequest
+	3, // 6: geometry.AnalysisService.StreamState:input_type -> geometry.AnalysisRequest
+	4, // 7: geometry.AnalysisService.AnalyzeState:output_type -> geometry.AnalysisResponse
+	4, // 8: geometry.AnalysisService.StreamState:output_type -> geometry.AnalysisResponse
+	7, // [7:9] is the sub-list for method output_type
+	5, // [5:7] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_proto_geometry_proto_init() }
-func file_proto_geometry_proto_init() {
-	if File_proto_geometry_proto != nil {
+func init() { file_backend_proto_geometry_proto_init() }
+func file_backend_proto_geometry_proto_init() {
+	if File_backend_proto_geometry_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_geometry_proto_rawDesc), len(file_proto_geometry_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_proto_geometry_proto_rawDesc), len(file_backend_proto_geometry_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_geometry_proto_goTypes,
-		DependencyIndexes: file_proto_geometry_proto_depIdxs,
-		MessageInfos:      file_proto_geometry_proto_msgTypes,
+		GoTypes:           file_backend_proto_geometry_proto_goTypes,
+		DependencyIndexes: file_backend_proto_geometry_proto_depIdxs,
+		MessageInfos:      file_backend_proto_geometry_proto_msgTypes,
 	}.Build()
-	File_proto_geometry_proto = out.File
-	file_proto_geometry_proto_goTypes = nil
-	file_proto_geometry_proto_depIdxs = nil
+	File_backend_proto_geometry_proto = out.File
+	file_backend_proto_geometry_proto_goTypes = nil
+	file_backend_proto_geometry_proto_depIdxs = nil
 }

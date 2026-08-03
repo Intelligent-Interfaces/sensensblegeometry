@@ -10,15 +10,31 @@ message GeometricState {
   repeated float data = 2; // e.g. [scalar, e1, e2, e3, e12, e23, e31, e123]
 }
 
+// Joint state for articulated robot arm
+message JointState {
+  string name = 1;
+  float angle = 2;
+  repeated float motor_data = 3; // PGA Motor [R_s, R_12, R_23, R_31, d_e0, d_e012, d_e023, d_e031]
+}
+
+// Robot manipulator state
+message RobotState {
+  string robot_id = 1;
+  repeated JointState joints = 2;
+  GeometricState end_effector_pose = 3;
+}
+
 message AnalysisRequest {
   string context = 1;
   string language = 2;
   repeated GeometricState objects = 3;
+  RobotState robot = 4;
 }
 
 message AnalysisResponse {
   string status = 1;
   string code = 2; // Return the generated analysis code or physical properties
+  RobotState robot = 3;
 }
 
 service AnalysisService {
