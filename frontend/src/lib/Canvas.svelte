@@ -37,6 +37,7 @@
 
   // Cyclogenesis control state
   let cycloCategory: number = $state(5);
+  let cycloTrack: boolean = $state(false);
 
   const PALETTE = [
     { hex: 0xffffff, css: '#ffffff', name: 'Ceramic' },
@@ -129,6 +130,14 @@
     // ── Render loop ──
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+      
+      // Camera Tracking Logic
+      if (domainState.activeDomain === 'CYCLOGENESIS' && cycloTrack && activeSimModel?.group) {
+        controls.target.lerp(activeSimModel.group.position, 0.05);
+      } else {
+        controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+      }
+      
       controls.update();
 
       // Remove old math objects
@@ -435,6 +444,11 @@
               oninput={() => activeSimModel?.setCategory?.(cycloCategory)}
             />
             <span class="joint-value">F-{cycloCategory.toFixed(1)}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 12px;">
+            <label class="joint-label" style="width:auto; cursor:pointer;">Track Storm: 
+              <input type="checkbox" bind:checked={cycloTrack} style="margin-left: 6px;"/>
+            </label>
           </div>
         </div>
       {/if}
