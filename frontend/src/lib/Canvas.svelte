@@ -35,6 +35,9 @@
   let selectedLink: number = $state(-2); // -2 = all, -1 = none, 0 = base, 1+ = links
   let panelOpen: boolean = $state(false);
 
+  // Cyclogenesis control state
+  let cycloCategory: number = $state(5);
+
   const PALETTE = [
     { hex: 0xffffff, css: '#ffffff', name: 'Ceramic' },
     { hex: 0xff5e00, css: '#ff5e00', name: 'KUKA' },
@@ -77,6 +80,7 @@
       activeSimModel = new DroneSystem(newType);
     } else if (domainState.activeDomain === 'CYCLOGENESIS') {
       activeSimModel = new CycloSystem(newType);
+      activeSimModel.setCategory(cycloCategory);
     }
 
     selectedLink = -2; // Reset color selection to "All"
@@ -421,8 +425,16 @@
           <span class="ctrl-section-label">Vortex Parameters</span>
           <div class="joint-row">
             <span class="joint-label">CAT</span>
-            <input type="range" class="joint-slider" min={1} max={5} step={1} value={5} />
-            <span class="joint-value">F-5</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={1} 
+              max={5} 
+              step={0.1} 
+              bind:value={cycloCategory} 
+              oninput={() => activeSimModel?.setCategory?.(cycloCategory)}
+            />
+            <span class="joint-value">F-{cycloCategory.toFixed(1)}</span>
           </div>
         </div>
       {/if}
