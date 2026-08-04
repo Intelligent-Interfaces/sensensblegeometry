@@ -499,7 +499,7 @@
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
     transition: all 0.2s ease;
-    font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+    font-family: inherit;
   }
   .robot-pill:hover {
     color: rgba(255, 255, 255, 0.85);
@@ -564,7 +564,7 @@
     padding: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     pointer-events: auto;
-    font-family: var(--font-mono, 'SF Mono', 'Fira Code', monospace);
+    font-family: inherit;
     color: rgba(255, 255, 255, 0.8);
   }
 
