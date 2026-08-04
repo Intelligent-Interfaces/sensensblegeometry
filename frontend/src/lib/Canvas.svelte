@@ -15,15 +15,19 @@
   let animationFrameId: number;
 
   import { canvasUI } from './canvasState.svelte';
+  import { domainState, DOMAINS, type DomainType } from './domainState.svelte';
 
   // Blade visibility state from shared store
   let blades = $derived(canvasUI.blades);
 
+  // Models
+  import { RobotArm } from './models/RobotArm';
+  import { WindTurbine } from './models/WindTurbine';
+  import { DroneSystem } from './models/DroneSystem';
+  import { CycloSystem } from './models/CycloSystem';
 
-
-    import { RobotArm, type RobotType } from './RobotArm';
-  let robotArm: RobotArm | undefined = $state();
-  let activeRobotType: RobotType = $state("KUKA_LBR_iiwa");
+  // Domain state tracking
+  let activeSimModel: any = $state();
   let resizeObserver: ResizeObserver;
 
   // Joint control state
@@ -45,26 +49,38 @@
   ];
 
   function applyJoints() {
-    robotArm?.setJointAngles(jointAngles);
+    if (domainState.activeDomain === 'ROBOTICS') {
+      activeSimModel?.setJointAngles(jointAngles);
+    }
   }
 
-  function swapRobot(newType: RobotType) {
+  function swapModel(newType: string) {
     if (!scene) return;
-    if (robotArm) {
+    if (activeSimModel) {
       // Recursively dispose all meshes and materials in the old group
-      robotArm.group.traverse((child) => {
-        if ((child as THREE.Mesh).geometry) (child as THREE.Mesh).geometry.dispose();
-        if ((child as THREE.Mesh).material) {
-          const mat = (child as THREE.Mesh).material;
+      activeSimModel.group.traverse((child: any) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          const mat = child.material;
           if (Array.isArray(mat)) mat.forEach(m => m.dispose());
-          else (mat as THREE.Material).dispose();
+          else mat.dispose();
         }
       });
-      scene.remove(robotArm.group);
+      scene.remove(activeSimModel.group);
     }
-    robotArm = new RobotArm(newType);
+    
+    if (domainState.activeDomain === 'ROBOTICS') {
+      activeSimModel = new RobotArm(newType as any);
+    } else if (domainState.activeDomain === 'WIND_TURBINES') {
+      activeSimModel = new WindTurbine(newType);
+    } else if (domainState.activeDomain === 'DRONES') {
+      activeSimModel = new DroneSystem(newType);
+    } else if (domainState.activeDomain === 'CYCLOGENESIS') {
+      activeSimModel = new CycloSystem(newType);
+    }
+
     selectedLink = -2; // Reset color selection to "All"
-    scene.add(robotArm.group);
+    if (activeSimModel) scene.add(activeSimModel.group);
   }
 
   onMount(() => {
@@ -98,9 +114,7 @@
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
 
-    // Add initial robot
-    robotArm = new RobotArm(activeRobotType);
-    scene.add(robotArm.group);
+    // Initial model load triggered by the reactive $effect below
 
     // Grid & axes
     const grid = new THREE.GridHelper(10, 10, 0xcbd5e1, 0xe2e8f0);
@@ -218,6 +232,12 @@
       scene.background = new THREE.Color(bgColor);
     };
     window.addEventListener('themechanged', handleThemeChange as EventListener);
+
+    // Watch domain changes
+    if (activeSimModel?.type !== domainState.activeModelId) {
+      swapModel(domainState.activeModelId);
+    }
+
     return () => window.removeEventListener('themechanged', handleThemeChange as EventListener);
   });
 
@@ -268,32 +288,35 @@
   <!-- Three.js mount point -->
   <div class="canvas-container" bind:this={canvasElement}></div>
   
-  <!-- Bottom: Robot Model Switcher -->
+  <!-- Bottom: Model Switcher -->
   <div class="robot-switcher">
-    <button
-      class="robot-pill"
-      class:active={activeRobotType === "KUKA_LBR_iiwa"}
-      onclick={() => { activeRobotType = "KUKA_LBR_iiwa"; swapRobot("KUKA_LBR_iiwa"); jointAngles = [0,0,0,0,0,0,0]; }}
+    
+    <!-- Domain Selector -->
+    <select 
+      class="docbar-domain-select" 
+      value={domainState.activeDomain} 
+      onchange={(e) => domainState.setActiveDomain(e.currentTarget.value as DomainType)}
     >
-      <span class="pill-label">KUKA iiwa</span>
-      <span class="pill-dof">7-DOF</span>
-    </button>
-    <button
-      class="robot-pill"
-      class:active={activeRobotType === "Franka_Panda"}
-      onclick={() => { activeRobotType = "Franka_Panda"; swapRobot("Franka_Panda"); jointAngles = [0,0,0,0,0,0,0]; }}
-    >
-      <span class="pill-label">Panda</span>
-      <span class="pill-dof">7-DOF</span>
-    </button>
-    <button
-      class="robot-pill"
-      class:active={activeRobotType === "UR5"}
-      onclick={() => { activeRobotType = "UR5"; swapRobot("UR5"); jointAngles = [0,0,0,0,0,0]; }}
-    >
-      <span class="pill-label">UR5</span>
-      <span class="pill-dof">6-DOF</span>
-    </button>
+      {#each Object.entries(DOMAINS) as [key, domain]}
+        <option value={key}>{domain.label}</option>
+      {/each}
+    </select>
+
+    <div class="switcher-divider"></div>
+
+    {#each domainState.currentModels as model}
+      <button
+        class="robot-pill"
+        class:active={domainState.activeModelId === model.id}
+        onclick={() => { 
+          domainState.setActiveModel(model.id); 
+          if (domainState.activeDomain === 'ROBOTICS') { jointAngles = [0,0,0,0,0,0,0]; }
+        }}
+      >
+        <span class="pill-label">{model.name}</span>
+        <span class="pill-dof">{model.details}</span>
+      </button>
+    {/each}
 
     <div class="switcher-divider"></div>
     
@@ -307,73 +330,102 @@
   {#if panelOpen}
     <div class="ctrl-panel">
       <div class="ctrl-header">
-        <span class="ctrl-title">Robot Control</span>
+        <span class="ctrl-title">Control Panel</span>
         <button class="ctrl-close" onclick={() => panelOpen = false}>✕</button>
       </div>
 
-      <!-- Joint Sliders -->
-      <div class="ctrl-section">
-        <span class="ctrl-section-label">Joint Angles</span>
-        {#each jointAngles as angle, i}
-          <div class="joint-row">
-            <span class="joint-label">J{i + 1}</span>
-            <input
-              type="range"
-              class="joint-slider"
-              min={-3.14}
-              max={3.14}
-              step={0.01}
-              bind:value={jointAngles[i]}
-              oninput={applyJoints}
-            />
-            <span class="joint-value">{angle.toFixed(1)}°</span>
-          </div>
-        {/each}
-        <button class="ctrl-btn" onclick={() => { jointAngles = jointAngles.map(() => 0); applyJoints(); }}>
-          Reset Joints
-        </button>
-      </div>
+      {#if domainState.activeDomain === 'ROBOTICS'}
+        <!-- Joint Sliders -->
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Joint Angles</span>
+          {#each jointAngles as angle, i}
+            <div class="joint-row">
+              <span class="joint-label">J{i + 1}</span>
+              <input
+                type="range"
+                class="joint-slider"
+                min={-3.14}
+                max={3.14}
+                step={0.01}
+                bind:value={jointAngles[i]}
+                oninput={applyJoints}
+              />
+              <span class="joint-value">{angle.toFixed(1)}°</span>
+            </div>
+          {/each}
+          <button class="ctrl-btn" onclick={() => { jointAngles = jointAngles.map(() => 0); applyJoints(); }}>
+            Reset Joints
+          </button>
+        </div>
 
-      <!-- Per-Link Color -->
-      <div class="ctrl-section">
-        <span class="ctrl-section-label">Link Color</span>
-        <div class="link-selector">
-          <button
-            class="link-chip"
-            class:active={selectedLink === -2}
-            onclick={() => selectedLink = -2}
-          >All</button>
-          {#each robotArm?.getLinkNames() ?? [] as name, i}
+        <!-- Per-Link Color -->
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Link Color</span>
+          <div class="link-selector">
             <button
               class="link-chip"
-              class:active={selectedLink === i}
-              onclick={() => selectedLink = i}
-            >{name}</button>
-          {/each}
-        </div>
+              class:active={selectedLink === -2}
+              onclick={() => selectedLink = -2}
+            >All</button>
+            {#each activeSimModel?.getLinkNames?.() ?? [] as name, i}
+              <button
+                class="link-chip"
+                class:active={selectedLink === i}
+                onclick={() => selectedLink = i}
+              >{name}</button>
+            {/each}
+          </div>
 
-        <div class="swatch-grid">
-          {#each PALETTE as swatch}
+          <div class="swatch-grid">
+            {#each PALETTE as swatch}
+              <button
+                class="color-swatch"
+                style="--swatch-color: {swatch.css}"
+                title={swatch.name}
+                onclick={() => {
+                  if (selectedLink === -2) activeSimModel?.setColor?.(swatch.hex);
+                  else if (selectedLink >= 0) activeSimModel?.setLinkColor?.(selectedLink, swatch.hex);
+                }}
+              ></button>
+            {/each}
             <button
-              class="color-swatch"
-              style="--swatch-color: {swatch.css}"
-              title={swatch.name}
+              class="color-swatch reset-swatch"
+              title="Original"
               onclick={() => {
-                if (selectedLink === -2) robotArm?.setColor(swatch.hex);
-                else if (selectedLink >= 0) robotArm?.setLinkColor(selectedLink, swatch.hex);
+                if (selectedLink === -2) activeSimModel?.setColor?.(null);
+                else if (selectedLink >= 0) activeSimModel?.setLinkColor?.(selectedLink, null);
               }}
             ></button>
-          {/each}
-          <button
-            class="color-swatch reset-swatch"
-            title="Original"
-            onclick={() => {
-              if (selectedLink === -2) robotArm?.setColor(null);
-              else if (selectedLink >= 0) robotArm?.setLinkColor(selectedLink, null);
-            }}
-          ></button>
+          </div>
         </div>
-      </div>
+      {:else if domainState.activeDomain === 'WIND_TURBINES'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Turbine Settings</span>
+          <div class="joint-row">
+            <span class="joint-label">RPM</span>
+            <input type="range" class="joint-slider" min={0} max={30} step={1} value={15} />
+            <span class="joint-value">15 rpm</span>
+          </div>
+        </div>
+      {:else if domainState.activeDomain === 'DRONES'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Drone Telemetry</span>
+          <div class="joint-row">
+            <span class="joint-label">THR</span>
+            <input type="range" class="joint-slider" min={0} max={100} step={1} value={50} />
+            <span class="joint-value">50%</span>
+          </div>
+        </div>
+      {:else if domainState.activeDomain === 'CYCLOGENESIS'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Vortex Parameters</span>
+          <div class="joint-row">
+            <span class="joint-label">CAT</span>
+            <input type="range" class="joint-slider" min={1} max={5} step={1} value={5} />
+            <span class="joint-value">F-5</span>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -440,6 +492,34 @@
     height: 28px;
     background: rgba(255, 255, 255, 0.15);
     margin: 0 6px;
+  }
+
+  /* ── Domain Selector in Docbar ── */
+  .docbar-domain-select {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 8px auto;
+    padding-right: 22px;
+    margin-right: 2px;
+  }
+  .docbar-domain-select:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+  }
+  .docbar-domain-select option {
+    background: #0f172a;
+    color: #fff;
   }
 
   /* ── Right Control Panel (OP-1 Field inspired) ── */

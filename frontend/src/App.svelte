@@ -4,6 +4,7 @@
   import Notebook from './lib/Notebook.svelte';
   import GuidedTour from './lib/GuidedTour.svelte';
   import { tourState } from './lib/tourState.svelte';
+  import { domainState, DOMAINS, type DomainType } from './lib/domainState.svelte';
 
   // Active stage tracking
   let activeStage = $state(1);

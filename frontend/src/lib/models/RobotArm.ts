@@ -67,12 +67,14 @@ export class RobotArm {
   public robotType: RobotType;
   public loaded: boolean = false;
   public linkGroups: THREE.Object3D[] = [];
+  public type: string;
 
   private loader: GLTFLoader;
   private jointDefs: JointDef[];
   private urdfRoot: THREE.Group;
 
   constructor(robotType: RobotType = "KUKA_LBR_iiwa") {
+    this.type = robotType;
     this.group = new THREE.Group();
     this.group.name = `${robotType}_RobotArm`;
     this.joints = [];
