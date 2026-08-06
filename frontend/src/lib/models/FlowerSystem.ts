@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 
-export class WindTurbine {
+export class FlowerSystem {
   group: THREE.Group;
   type: string;
   
   constructor(type: string) {
     this.type = type;
     this.group = new THREE.Group();
-    this.group.name = `Turbine_${type}`;
+    this.group.name = `Flower_${type}`;
     
-    const sprite = this.createTextSprite(`[Wind Turbine: ${type}] Placeholder`);
+    const sprite = this.createTextSprite(`[Flower: ${type}] Placeholder`);
     sprite.position.y = 2;
     this.group.add(sprite);
   }

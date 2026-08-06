@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 
-export class WindTurbine {
+export class DNASystem {
   group: THREE.Group;
   type: string;
   
   constructor(type: string) {
     this.type = type;
     this.group = new THREE.Group();
-    this.group.name = `Turbine_${type}`;
+    this.group.name = `DNA_${type}`;
     
-    const sprite = this.createTextSprite(`[Wind Turbine: ${type}] Placeholder`);
+    const sprite = this.createTextSprite(`[DNA: ${type}] Placeholder`);
     sprite.position.y = 2;
     this.group.add(sprite);
   }

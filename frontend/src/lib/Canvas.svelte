@@ -25,6 +25,9 @@
   import { WindTurbine } from './models/WindTurbine';
   import { DroneSystem } from './models/DroneSystem';
   import { CycloSystem } from './models/CycloSystem';
+  import { UmbrellaSystem } from './models/UmbrellaSystem';
+  import { DNASystem } from './models/DNASystem';
+  import { FlowerSystem } from './models/FlowerSystem';
 
   // Domain state tracking
   let activeSimModel: any = $state();
@@ -38,6 +41,19 @@
   // Cyclogenesis control state
   let cycloCategory: number = $state(5);
   let cycloTrack: boolean = $state(false);
+
+  // Flower state
+  let flowerWind: number = $state(30);
+  let flowerDivergence: number = $state(137.5);
+
+  // DNA state
+  let dnaTwist: number = $state(50);
+  
+  // Turbine state
+  let turbineRPM: number = $state(15);
+  
+  // Drone state
+  let droneThrottle: number = $state(50);
 
   const PALETTE = [
     { hex: 0xffffff, css: '#ffffff', name: 'Ceramic' },
@@ -82,6 +98,12 @@
     } else if (domainState.activeDomain === 'CYCLOGENESIS') {
       activeSimModel = new CycloSystem(newType);
       activeSimModel.setCategory(cycloCategory);
+    } else if (domainState.activeDomain === 'UMBRELLAS') {
+      activeSimModel = new UmbrellaSystem(newType);
+    } else if (domainState.activeDomain === 'DNA_STRUCTURES') {
+      activeSimModel = new DNASystem(newType);
+    } else if (domainState.activeDomain === 'FLOWERS') {
+      activeSimModel = new FlowerSystem(newType);
     }
 
     selectedLink = -2; // Reset color selection to "All"
@@ -416,8 +438,16 @@
           <span class="ctrl-section-label">Turbine Settings</span>
           <div class="joint-row">
             <span class="joint-label">RPM</span>
-            <input type="range" class="joint-slider" min={0} max={30} step={1} value={15} />
-            <span class="joint-value">15 rpm</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={0} 
+              max={30} 
+              step={1} 
+              bind:value={turbineRPM} 
+              oninput={() => activeSimModel?.setRPM?.(turbineRPM)}
+            />
+            <span class="joint-value">{turbineRPM} rpm</span>
           </div>
         </div>
       {:else if domainState.activeDomain === 'DRONES'}
@@ -425,8 +455,16 @@
           <span class="ctrl-section-label">Drone Telemetry</span>
           <div class="joint-row">
             <span class="joint-label">THR</span>
-            <input type="range" class="joint-slider" min={0} max={100} step={1} value={50} />
-            <span class="joint-value">50%</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={0} 
+              max={100} 
+              step={1} 
+              bind:value={droneThrottle} 
+              oninput={() => activeSimModel?.setThrottle?.(droneThrottle)}
+            />
+            <span class="joint-value">{droneThrottle}%</span>
           </div>
         </div>
       {:else if domainState.activeDomain === 'CYCLOGENESIS'}
@@ -450,6 +488,66 @@
               <input type="checkbox" bind:checked={cycloTrack} style="margin-left: 6px;"/>
             </label>
           </div>
+        </div>
+      {:else if domainState.activeDomain === 'UMBRELLAS'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Umbrella Controls</span>
+          <div class="joint-row">
+            <label class="joint-label" style="width:auto; cursor:pointer;">Canopy Open: 
+              <input type="checkbox" checked={true} onchange={(e) => {
+                if (activeSimModel) activeSimModel.isOpen = e.currentTarget.checked;
+              }} style="margin-left: 6px;"/>
+            </label>
+          </div>
+        </div>
+      {:else if domainState.activeDomain === 'DNA_STRUCTURES'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">DNA Parameters</span>
+          <div class="joint-row">
+            <span class="joint-label">Twist</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={0} 
+              max={100} 
+              step={1} 
+              bind:value={dnaTwist} 
+              oninput={() => activeSimModel?.setTwist?.(dnaTwist)}
+            />
+            <span class="joint-value">{dnaTwist === 50 ? 'Auto' : dnaTwist + '%'}</span>
+          </div>
+        </div>
+      {:else if domainState.activeDomain === 'FLOWERS'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Botanical Controls</span>
+          <div class="joint-row">
+            <span class="joint-label">Wind</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={0} 
+              max={100} 
+              step={1} 
+              bind:value={flowerWind} 
+              oninput={() => activeSimModel?.setWindSpeed?.(flowerWind)}
+            />
+            <span class="joint-value">{flowerWind}%</span>
+          </div>
+          {#if activeSimModel?.type === 'Sunflower'}
+          <div class="joint-row" style="margin-top: 12px;">
+            <span class="joint-label" style="width: 60px;">Phyllotaxis</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={130} 
+              max={145} 
+              step={0.1} 
+              bind:value={flowerDivergence} 
+              oninput={() => activeSimModel?.setDivergence?.(flowerDivergence)}
+            />
+            <span class="joint-value">{flowerDivergence.toFixed(1)}°</span>
+          </div>
+          {/if}
         </div>
       {/if}
     </div>
