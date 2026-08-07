@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 export type RobotType = "KUKA_LBR_iiwa" | "Franka_Panda" | "UR5";
 
@@ -80,7 +81,11 @@ export class RobotArm {
     this.joints = [];
     this.linkMeshes = [];
     this.robotType = robotType;
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+
     this.loader = new GLTFLoader();
+    this.loader.setDRACOLoader(dracoLoader);
     this.jointDefs = ROBOT_DEFS[robotType].joints;
 
     this.urdfRoot = new THREE.Group();

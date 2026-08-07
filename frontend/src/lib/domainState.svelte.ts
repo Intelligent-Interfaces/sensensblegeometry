@@ -1,4 +1,4 @@
-export type DomainType = 'ROBOTICS' | 'WIND_TURBINES' | 'CYCLOGENESIS' | 'DRONES';
+export type DomainType = 'ROBOTICS' | 'WIND_TURBINES' | 'CYCLOGENESIS' | 'DRONES' | 'UMBRELLAS' | 'DNA_STRUCTURES' | 'FLOWERS';
 
 export interface ModelSystem {
   id: string;
@@ -35,6 +35,27 @@ export const DOMAINS: Record<DomainType, { label: string; models: ModelSystem[] 
       { id: 'Quadcopter_DJI', name: 'Quadcopter', details: '4-Rotor' },
       { id: 'FixedWing', name: 'Fixed-Wing', details: 'Glider' }
     ]
+  },
+  UMBRELLAS: {
+    label: 'Umbrellas',
+    models: [
+      { id: 'Patio_Umbrella', name: 'Patio Umbrella', details: 'Cantilever' },
+      { id: 'Classic_Umbrella', name: 'Classic', details: '8-Rib' }
+    ]
+  },
+  DNA_STRUCTURES: {
+    label: 'DNA Structures',
+    models: [
+      { id: 'B_DNA', name: 'B-DNA', details: 'Right-handed' },
+      { id: 'Z_DNA', name: 'Z-DNA', details: 'Left-handed' }
+    ]
+  },
+  FLOWERS: {
+    label: 'Flowers',
+    models: [
+      { id: 'Dandelion', name: 'Dandelion', details: 'Pappus' },
+      { id: 'Sunflower', name: 'Sunflower', details: 'Fibonacci' }
+    ]
   }
 };
 
@@ -46,7 +67,10 @@ class DomainState {
     ROBOTICS: 'KUKA_LBR_iiwa',
     WIND_TURBINES: 'Vestas_V164',
     CYCLOGENESIS: 'Tornado_EF5',
-    DRONES: 'Quadcopter_DJI'
+    DRONES: 'Quadcopter_DJI',
+    UMBRELLAS: 'Patio_Umbrella',
+    DNA_STRUCTURES: 'B_DNA',
+    FLOWERS: 'Dandelion'
   });
 
   get currentModels() {
