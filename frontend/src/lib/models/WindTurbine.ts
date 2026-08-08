@@ -54,24 +54,56 @@ export class WindTurbine {
       model.position.y = -scaledBox.min.y;
       model.position.z = -center.z;
 
-      // We'll rotate the entire model for now if we can't isolate the blades cleanly
-      // since the step converter merged it into a single mesh.
-      // But let's try to isolate it anyway:
+      // We'll group the rotors so they spin around their true physical center
+      const rotorGroup = new THREE.Group();
+      model.add(rotorGroup);
+      
+      const rotorParts: THREE.Object3D[] = [];
+      const totalHeight = scaledBox.max.y - scaledBox.min.y;
+      
       model.traverse((child) => {
-        if (child.name.toLowerCase().includes('rotor') || child.name.toLowerCase().includes('blade') || child.name.toLowerCase().includes('hub')) {
-          this.rotors.push(child);
-        }
-        
-        // PBR aesthetics upgrade
         if ((child as THREE.Mesh).isMesh) {
-          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          const mesh = child as THREE.Mesh;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
           if (mat) {
              mat.metalness = 0.8;
              mat.roughness = 0.2;
              mat.color = new THREE.Color(0xdce7eb); // Off-white industrial
           }
+          
+          mesh.geometry.computeBoundingBox();
+          const bbox = mesh.geometry.boundingBox!;
+          const size = bbox.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          
+          // Heuristic: Rotor parts are high up (don't touch the ground) and are large.
+          // Or they contain 'blade', 'rotor', 'hub' in name (if preserved).
+          const nameMatch = mesh.name.toLowerCase().includes('rotor') || mesh.name.toLowerCase().includes('blade') || mesh.name.toLowerCase().includes('hub');
+          const isHighUp = bbox.min.y > (totalHeight * 0.15);
+          const isLarge = maxDim > (totalHeight * 0.25); // Blades are long
+          
+          if (nameMatch || (isHighUp && isLarge)) {
+            rotorParts.push(mesh);
+          }
         }
       });
+      
+      if (rotorParts.length > 0) {
+        // Calculate the bounding box of just the rotor assembly
+        const rotorBox = new THREE.Box3();
+        rotorParts.forEach(part => rotorBox.expandByObject(part));
+        const rotorCenter = rotorBox.getCenter(new THREE.Vector3());
+        
+        // Place the pivot group at the rotor's centroid
+        rotorGroup.position.copy(rotorCenter);
+        
+        // Move all rotor parts into this group, preserving their spatial relation
+        rotorParts.forEach(part => {
+           rotorGroup.attach(part);
+        });
+        
+        this.rotors.push(rotorGroup);
+      }
       
       this.group.add(model);
       
