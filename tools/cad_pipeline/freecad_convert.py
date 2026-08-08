@@ -15,8 +15,13 @@ try:
     for obj in doc.Objects:
         if hasattr(obj, "Shape") and obj.Shape is not None:
             # Create mesh from shape
+            mesh = MeshPart.meshFromShape(Shape=obj.Shape, LinearDeflection=1.0, AngularDeflection=0.5)
+            # Apply the part's placement in the assembly to the mesh vertices
+            if hasattr(obj, "Placement"):
+                mesh.transform(obj.Placement.Matrix)
+            
             mesh_obj = doc.addObject("Mesh::Feature", obj.Name + "_Mesh")
-            mesh_obj.Mesh = MeshPart.meshFromShape(Shape=obj.Shape, LinearDeflection=1.0, AngularDeflection=0.5)
+            mesh_obj.Mesh = mesh
             meshes.append(mesh_obj)
 
     if not meshes:
