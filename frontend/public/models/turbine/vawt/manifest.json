@@ -1,0 +1,212 @@
+{
+  "parts": [
+    {
+      "name": "Balde",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "F1",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P1",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P001",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P002",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "Balde001",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "F001",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P003",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P004",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P005",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "Balde002",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "F002",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P006",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P007",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P008",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "Balde003",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "F003",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P009",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P010",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "P011",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H1",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H001",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H002",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H003",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H004",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H005",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H006",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H007",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H008",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H009",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H010",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H011",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H012",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "H013",
+      "kinematic": "rotor"
+    },
+    {
+      "name": "Motor",
+      "kinematic": "static"
+    },
+    {
+      "name": "Motor001",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO001",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO002",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO003",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO004",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO005",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO006",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4762_-_M8_x_20ISO007",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO001",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO002",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO003",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO004",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO005",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO006",
+      "kinematic": "static"
+    },
+    {
+      "name": "ISO_4032_-_M8_-_ISO007",
+      "kinematic": "static"
+    }
+  ]
+}
