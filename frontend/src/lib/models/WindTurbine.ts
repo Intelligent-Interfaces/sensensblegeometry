@@ -6,24 +6,23 @@ export type TurbineType = "VAWT" | "GE_Haliade_X";
 
 interface TurbineDef {
   basePath: string;
-  glbFile: string;
+  glbFiles: string[];
   rotorAxis: [number, number, number];
 }
 
 const TURBINE_DEFS: Record<TurbineType, TurbineDef> = {
   "GE_Haliade_X": {
     basePath: "/models/turbine/ge_haliade",
-    glbFile: "rotor.glb", // placeholder
+    glbFiles: ["rotor.glb", "nacelle.glb", "tower.glb"],
     rotorAxis: [1, 0, 0],
   },
   "VAWT": {
     basePath: "/models/turbine/vawt",
-    glbFile: "vawt_full.glb",
-    rotorAxis: [0, 1, 0],
+    glbFiles: ["vawt_full.glb"],
+    rotorAxis: [0, 1, 0]
   }
 };
 
-// Classify VAWT parts by their CAD label
 function classifyVAWT(name: string): "rotor" | "static" {
   const n = name.toLowerCase();
   // Blades, blade frames, blade pins → rotor
@@ -32,8 +31,43 @@ function classifyVAWT(name: string): "rotor" | "static" {
   if (/^p\d/.test(n) || /^p0/.test(n)) return "rotor";
   // Hub cage parts → rotor (they spin with the blades)
   if (/^h\d/.test(n) || /^h0/.test(n)) return "rotor";
+  if (n.includes("hub")) return "rotor";
   // Motor, fasteners → static
   return "static";
+}
+
+// Semantic group names and matchers
+function getPartGroupInfo(type: TurbineType, meshName: string): { groupName: string; groupIndex: number } {
+  const n = meshName.toLowerCase();
+  
+  if (type === "GE_Haliade_X") {
+    if (n.includes("rotor") || n.includes("blade") || n.includes("hub")) return { groupName: "Rotor & Blades", groupIndex: 0 };
+    if (n.includes("nacelle") || n.includes("generator")) return { groupName: "Nacelle", groupIndex: 1 };
+    return { groupName: "Tower & Foundation", groupIndex: 2 };
+  } else {
+    // VAWT
+    if (n.includes("balde") || n.includes("blade") || /^f\d/.test(n) || /^f0/.test(n)) {
+      return { groupName: "Blades", groupIndex: 0 };
+    }
+    if (/^h\d/.test(n) || /^h0/.test(n) || /^p\d/.test(n) || /^p0/.test(n) || n.includes("hub")) {
+      return { groupName: "Hub & Frame", groupIndex: 1 };
+    }
+    if (n.includes("motor") || n.includes("stator") || n.includes("baza") || n.includes("ploca")) {
+      return { groupName: "Motor & Base", groupIndex: 2 };
+    }
+    return { groupName: "Fasteners", groupIndex: 3 };
+  }
+}
+
+function getPartColor(type: TurbineType, name: string): number {
+  const { groupIndex } = getPartGroupInfo(type, name);
+  switch (groupIndex) {
+    case 0: return 0x0ea5e9; // Blades -> bright visual blue
+    case 1: return 0x0284c7; // Hub & Frame -> deep blue
+    case 2: return 0x475569; // Nacelle / Motor -> dark slate
+    case 3: return 0x94a3b8; // Tower / Base / Fasteners -> slate
+    default: return 0xdce7eb;
+  }
 }
 
 export class WindTurbine {
@@ -44,6 +78,9 @@ export class WindTurbine {
   private rootGroup: THREE.Group;
   private cadScaleFactor: number = 1.0;
   private rotorAxis: [number, number, number] = [0, 1, 0];
+
+  private rotorScene: THREE.Group | null = null;
+  private vawtRotorMeshes: THREE.Object3D[] = [];
 
   // Each individual mesh from the GLB, stored with its rest position
   private parts: { mesh: THREE.Object3D; restPosition: THREE.Vector3; center: THREE.Vector3; kinematic: "rotor" | "static" }[] = [];
@@ -78,17 +115,34 @@ export class WindTurbine {
     const def = TURBINE_DEFS[defKey];
 
     try {
-      const gltf = await this.loader.loadAsync(`${def.basePath}/${def.glbFile}`);
-      const scene = gltf.scene;
-      scene.updateMatrixWorld(true);
-
-      // Collect all mesh children from the GLB
       const meshes: THREE.Object3D[] = [];
-      scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          meshes.push(child);
+
+      const scenes: THREE.Group[] = [];
+
+      // Load all parts defined in the definition
+      for (const file of def.glbFiles) {
+        const gltf = await this.loader.loadAsync(`${def.basePath}/${file}`);
+        const scene = gltf.scene;
+
+        // Position and orientation alignment for GE Haliade-X rotor
+        if (defKey === "GE_Haliade_X" && file === "rotor.glb") {
+          // Rotate +90 degrees around Z to orient the rotor facing forward (-X)
+          scene.rotation.set(0, 0, Math.PI / 2);
+          
+          // Position it flush at the front nose interface of the nacelle (X=-2800 to close gap, Y=90161, Z=0)
+          scene.position.set(-2800, 90161, 0);
+          this.rotorScene = scene;
         }
-      });
+
+        scene.updateMatrixWorld(true);
+        scenes.push(scene);
+
+        scene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            meshes.push(child);
+          }
+        });
+      }
 
       if (meshes.length === 0) return;
 
@@ -101,6 +155,15 @@ export class WindTurbine {
         const center = box.getCenter(new THREE.Vector3());
         const kinematic = classifyVAWT(mesh.name);
         
+        // Apply color system
+        if ((mesh as THREE.Mesh).isMesh) {
+           (mesh as THREE.Mesh).material = new THREE.MeshStandardMaterial({
+             metalness: 0.6,
+             roughness: 0.3,
+             color: new THREE.Color(getPartColor(defKey, mesh.name)),
+           });
+        }
+        
         // Store the mesh's original local position as its "rest" state
         const restPosition = mesh.position.clone();
 
@@ -108,25 +171,19 @@ export class WindTurbine {
         allCenters.push(center);
       }
 
+      if (defKey === "VAWT") {
+        this.vawtRotorMeshes = this.parts.filter(p => p.kinematic === "rotor").map(p => p.mesh);
+      }
+
       // Compute assembly centroid
       this.assemblyCentroid.set(0, 0, 0);
       for (const c of allCenters) this.assemblyCentroid.add(c);
       this.assemblyCentroid.divideScalar(allCenters.length);
 
-      // Style all meshes
-      scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const m = child as THREE.Mesh;
-          m.material = new THREE.MeshStandardMaterial({
-            metalness: 0.75,
-            roughness: 0.25,
-            color: new THREE.Color(0xdce7eb),
-          });
-        }
-      });
-
-      // Add the scene directly — it already has the correct assembled positions
-      this.rootGroup.add(scene);
+      for (const scene of scenes) {
+        // Add the scene directly — it already has the correct assembled positions
+        this.rootGroup.add(scene);
+      }
 
       // Auto-scale to fit viewport
       const fullBox = new THREE.Box3().setFromObject(this.rootGroup);
@@ -161,11 +218,55 @@ export class WindTurbine {
 
   explode() { this.targetExplodeFactor = 1.0; }
 
+  public getLinkNames(): string[] {
+    const defKey: TurbineType = (this.type in TURBINE_DEFS) ? this.type as TurbineType : "VAWT";
+    if (defKey === "GE_Haliade_X") {
+      return ["Rotor & Blades", "Nacelle", "Tower & Foundation"];
+    } else {
+      return ["Blades", "Hub & Frame", "Motor & Base", "Fasteners"];
+    }
+  }
+
+  public setLinkColor(linkIndex: number, hex: number | null) {
+    const defKey: TurbineType = (this.type in TURBINE_DEFS) ? this.type as TurbineType : "VAWT";
+
+    for (const part of this.parts) {
+      if (!part.mesh) continue;
+      const mesh = part.mesh as THREE.Mesh;
+      if (!mesh.isMesh) continue;
+
+      const groupInfo = getPartGroupInfo(defKey, mesh.name);
+      if (groupInfo.groupIndex !== linkIndex) continue;
+
+      if (hex === null) {
+        if (mesh.userData.originalMaterial) {
+          mesh.material = mesh.userData.originalMaterial;
+        }
+      } else {
+        if (!mesh.userData.originalMaterial) {
+          mesh.userData.originalMaterial = mesh.material;
+        }
+        mesh.material = new THREE.MeshStandardMaterial({
+          color: hex,
+          roughness: 0.25,
+          metalness: 0.6,
+        });
+      }
+    }
+  }
+
+  public setColor(hex: number | null) {
+    const numGroups = this.getLinkNames().length;
+    for (let i = 0; i < numGroups; i++) {
+      this.setLinkColor(i, hex);
+    }
+  }
+
   private startAnimation() {
     const animate = () => {
       if (!this.group.parent) return;
 
-      // Smooth RPM
+      // Smooth RPM acceleration / deceleration (rigid body inertia)
       this.currentRPM += (this.targetRPM - this.currentRPM) * 0.05;
 
       // Smooth explode
@@ -189,9 +290,19 @@ export class WindTurbine {
         );
       }
 
-      // Rotor spin — rotate parts tagged as rotor around the Y axis
-      // (We don't use a joint group to avoid re-parenting which breaks positions)
-      // Instead, skip rotor rotation for now until assembly is confirmed correct
+      // Rigid body rotational physics (angular velocity omega = RPM * 2pi / 60)
+      const deltaRad = (this.currentRPM * (2 * Math.PI) / 60) * (1 / 60);
+
+      if (deltaRad > 0.0001) {
+        if (this.type === "GE_Haliade_X" && this.rotorScene) {
+          // Rotate around the horizontal nacelle shaft axis (World X)
+          this.rotorScene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), deltaRad);
+        } else if (this.type === "VAWT") {
+          for (const mesh of this.vawtRotorMeshes) {
+            mesh.rotateY(deltaRad);
+          }
+        }
+      }
 
       requestAnimationFrame(animate);
     };
