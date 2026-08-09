@@ -440,6 +440,7 @@
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s ease;
+    
   }
 
   .stage-tab:hover {

@@ -21,7 +21,8 @@ export class DroneSystem {
   targetY: number = 2;
   rotSpeed: number = 0.2;
   
-  private clock = new THREE.Clock();
+  private startTime = performance.now();
+  private lastTime = performance.now();
 
   constructor(type: string) {
     this.type = type;
@@ -98,8 +99,10 @@ export class DroneSystem {
   private startAnimation() {
     const animate = () => {
       if (!this.group.parent) return;
-      const dt = this.clock.getDelta();
-      const time = this.clock.getElapsedTime();
+      const now = performance.now();
+      const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+      const time = (now - this.startTime) / 1000;
+      this.lastTime = now;
 
       // Flocking / Swarm logic
       this.drones.forEach((drone, index) => {
