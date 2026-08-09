@@ -25,14 +25,17 @@ const TURBINE_DEFS: Record<TurbineType, TurbineDef> = {
 
 function classifyVAWT(name: string): "rotor" | "static" {
   const n = name.toLowerCase();
-  // Blades, blade frames, blade pins → rotor
-  if (n.includes("balde") || n.includes("blade")) return "rotor";
-  if (/^f\d/.test(n) || /^f0/.test(n)) return "rotor";
-  if (/^p\d/.test(n) || /^p0/.test(n)) return "rotor";
-  // Hub cage parts → rotor (they spin with the blades)
-  if (/^h\d/.test(n) || /^h0/.test(n)) return "rotor";
-  if (n.includes("hub")) return "rotor";
-  // Motor, fasteners → static
+  // Static base parts: 4 base legs (H1-001/H1-006), collars, motor, fasteners
+  if (n.startsWith("motor") || n.includes("iso") || 
+      n.startsWith("h1-001") || n.startsWith("h1-002") || n.startsWith("h1-003") || 
+      n.startsWith("h1-004") || n.startsWith("h1-005") || n.startsWith("h1-006")) {
+    return "static";
+  }
+  // Rotor parts: 3 blades (Balde/001/002), frames (F1/001/002), pins (P1-P008), hub arms (H1-007-H1-011)
+  if (n.includes("balde") || n.includes("blade") || /^f\d/.test(n) || /^f0/.test(n) || /^p\d/.test(n) || /^p0/.test(n) || 
+      n.startsWith("h1-007") || n.startsWith("h1-008") || n.startsWith("h1-009") || n.startsWith("h1-010") || n.startsWith("h1-011") || n.includes("hub")) {
+    return "rotor";
+  }
   return "static";
 }
 
@@ -45,17 +48,18 @@ function getPartGroupInfo(type: TurbineType, meshName: string): { groupName: str
     if (n.includes("nacelle") || n.includes("generator")) return { groupName: "Nacelle", groupIndex: 1 };
     return { groupName: "Tower & Foundation", groupIndex: 2 };
   } else {
-    // VAWT
-    if (n.includes("balde") || n.includes("blade") || /^f\d/.test(n) || /^f0/.test(n)) {
+    // VAWT (Lenz2)
+    if (n.includes("balde") || n.includes("blade")) {
       return { groupName: "Blades", groupIndex: 0 };
     }
-    if (/^h\d/.test(n) || /^h0/.test(n) || /^p\d/.test(n) || /^p0/.test(n) || n.includes("hub")) {
-      return { groupName: "Hub & Frame", groupIndex: 1 };
+    if (n.startsWith("h1-007") || n.startsWith("h1-008") || n.startsWith("h1-009") || n.startsWith("h1-010") || n.startsWith("h1-011") || n.includes("hub")) {
+      return { groupName: "Hub & Spokes", groupIndex: 1 };
     }
-    if (n.includes("motor") || n.includes("stator") || n.includes("baza") || n.includes("ploca")) {
-      return { groupName: "Motor & Base", groupIndex: 2 };
+    if (n.startsWith("motor") || n.startsWith("h1-001") || n.startsWith("h1-002") || n.startsWith("h1-003") || 
+        n.startsWith("h1-004") || n.startsWith("h1-005") || n.startsWith("h1-006")) {
+      return { groupName: "4-Leg Base", groupIndex: 2 };
     }
-    return { groupName: "Fasteners", groupIndex: 3 };
+    return { groupName: "Internal Ribs & Shaft", groupIndex: 3 };
   }
 }
 
@@ -172,7 +176,7 @@ export class WindTurbine {
       }
 
       if (defKey === "VAWT") {
-        this.vawtRotorMeshes = this.parts.filter(p => p.kinematic === "rotor").map(p => p.mesh);
+        this.rotorScene = scenes[0].getObjectByName("Rotor_Group") as THREE.Group;
       }
 
       // Compute assembly centroid
@@ -297,10 +301,9 @@ export class WindTurbine {
         if (this.type === "GE_Haliade_X" && this.rotorScene) {
           // Rotate around the horizontal nacelle shaft axis (World X)
           this.rotorScene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), deltaRad);
-        } else if (this.type === "VAWT") {
-          for (const mesh of this.vawtRotorMeshes) {
-            mesh.rotateY(deltaRad);
-          }
+        } else if (this.type === "VAWT" && this.rotorScene) {
+          // Rotate around the vertical turbine axis (Local Y)
+          this.rotorScene.rotateY(deltaRad);
         }
       }
 
