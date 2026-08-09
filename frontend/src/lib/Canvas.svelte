@@ -481,6 +481,47 @@
             >Explode Parts</button>
           </div>
         </div>
+
+        <!-- Part Color Selector for Turbines -->
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Part Color</span>
+          <div class="link-selector">
+            <button
+              class="link-chip"
+              class:active={selectedLink === -2}
+              onclick={() => selectedLink = -2}
+            >All</button>
+            {#each activeSimModel?.getLinkNames?.() ?? [] as name, i}
+              <button
+                class="link-chip"
+                class:active={selectedLink === i}
+                onclick={() => selectedLink = i}
+              >{name}</button>
+            {/each}
+          </div>
+
+          <div class="swatch-grid">
+            {#each PALETTE as swatch}
+              <button
+                class="color-swatch"
+                style="--swatch-color: {swatch.css}"
+                title={swatch.name}
+                onclick={() => {
+                  if (selectedLink === -2) activeSimModel?.setColor?.(swatch.hex);
+                  else if (selectedLink >= 0) activeSimModel?.setLinkColor?.(selectedLink, swatch.hex);
+                }}
+              ></button>
+            {/each}
+            <button
+              class="color-swatch reset-swatch"
+              title="Original"
+              onclick={() => {
+                if (selectedLink === -2) activeSimModel?.setColor?.(null);
+                else if (selectedLink >= 0) activeSimModel?.setLinkColor?.(selectedLink, null);
+              }}
+            ></button>
+          </div>
+        </div>
       {:else if domainState.activeDomain === 'DRONES'}
         <div class="ctrl-section">
           <span class="ctrl-section-label">Drone Telemetry</span>
