@@ -18,7 +18,7 @@ export const DOMAINS: Record<DomainType, { label: string; models: ModelSystem[] 
   WIND_TURBINES: {
     label: 'Wind Turbines',
     models: [
-      { id: 'Vestas_V164', name: 'Vestas V164', details: 'Offshore' },
+      { id: 'VAWT', name: 'VAWT', details: 'Vertical Axis' },
       { id: 'GE_Haliade_X', name: 'GE Haliade-X', details: '14MW' }
     ]
   },
@@ -65,7 +65,7 @@ class DomainState {
   // Keep track of the selected model per domain so switching back restores it
   activeModels = $state<Record<DomainType, string>>({
     ROBOTICS: 'KUKA_LBR_iiwa',
-    WIND_TURBINES: 'Vestas_V164',
+    WIND_TURBINES: 'VAWT',
     CYCLOGENESIS: 'Tornado_EF5',
     DRONES: 'Quadcopter_DJI',
     UMBRELLAS: 'Patio_Umbrella',

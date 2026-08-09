@@ -2,137 +2,196 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
+export type TurbineType = "VAWT" | "GE_Haliade_X";
+
+interface TurbineDef {
+  basePath: string;
+  glbFile: string;
+  rotorAxis: [number, number, number];
+}
+
+const TURBINE_DEFS: Record<TurbineType, TurbineDef> = {
+  "GE_Haliade_X": {
+    basePath: "/models/turbine/ge_haliade",
+    glbFile: "rotor.glb", // placeholder
+    rotorAxis: [1, 0, 0],
+  },
+  "VAWT": {
+    basePath: "/models/turbine/vawt",
+    glbFile: "vawt_full.glb",
+    rotorAxis: [0, 1, 0],
+  }
+};
+
+// Classify VAWT parts by their CAD label
+function classifyVAWT(name: string): "rotor" | "static" {
+  const n = name.toLowerCase();
+  // Blades, blade frames, blade pins → rotor
+  if (n.includes("balde") || n.includes("blade")) return "rotor";
+  if (/^f\d/.test(n) || /^f0/.test(n)) return "rotor";
+  if (/^p\d/.test(n) || /^p0/.test(n)) return "rotor";
+  // Hub cage parts → rotor (they spin with the blades)
+  if (/^h\d/.test(n) || /^h0/.test(n)) return "rotor";
+  // Motor, fasteners → static
+  return "static";
+}
+
 export class WindTurbine {
-  group: THREE.Group;
-  type: string;
-  
+  public group: THREE.Group;
+  public type: string;
+
   private loader: GLTFLoader;
-  private rotors: THREE.Object3D[] = [];
-  targetRPM: number = 15;
+  private rootGroup: THREE.Group;
+  private cadScaleFactor: number = 1.0;
+  private rotorAxis: [number, number, number] = [0, 1, 0];
+
+  // Each individual mesh from the GLB, stored with its rest position
+  private parts: { mesh: THREE.Object3D; restPosition: THREE.Vector3; center: THREE.Vector3; kinematic: "rotor" | "static" }[] = [];
+  private assemblyCentroid: THREE.Vector3 = new THREE.Vector3();
+
+  targetRPM: number = 0;
   currentRPM: number = 0;
+  targetExplodeFactor: number = 0.0;
+  currentExplodeFactor: number = 0.0;
+
+  public rotorJoint: THREE.Group | null = null;
 
   constructor(type: string) {
     this.type = type;
     this.group = new THREE.Group();
     this.group.name = `Turbine_${type}`;
-    
+
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-
     this.loader = new GLTFLoader();
     this.loader.setDRACOLoader(dracoLoader);
 
-    this.group.position.y = 0;
-    this.loadModel();
+    this.rootGroup = new THREE.Group();
+    this.group.add(this.rootGroup);
+
+    const defKey: TurbineType = (type in TURBINE_DEFS) ? type as TurbineType : "VAWT";
+    this.rotorAxis = TURBINE_DEFS[defKey].rotorAxis;
+    this.loadModel(defKey);
   }
 
-  private async loadModel() {
+  private async loadModel(defKey: TurbineType) {
+    const def = TURBINE_DEFS[defKey];
+
     try {
-      let gltfFile = '/models/turbine/hawt_modern.glb';
-      if (this.type === 'GE_Haliade_X') {
-          gltfFile = '/models/turbine/hawt_modern_2.glb';
+      const gltf = await this.loader.loadAsync(`${def.basePath}/${def.glbFile}`);
+      const scene = gltf.scene;
+      scene.updateMatrixWorld(true);
+
+      // Collect all mesh children from the GLB
+      const meshes: THREE.Object3D[] = [];
+      scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          meshes.push(child);
+        }
+      });
+
+      if (meshes.length === 0) return;
+
+      // Compute each mesh's bounding-box center (for explosion direction)
+      // and store its rest position (where it naturally sits in the GLB)
+      const allCenters: THREE.Vector3[] = [];
+
+      for (const mesh of meshes) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = box.getCenter(new THREE.Vector3());
+        const kinematic = classifyVAWT(mesh.name);
+        
+        // Store the mesh's original local position as its "rest" state
+        const restPosition = mesh.position.clone();
+
+        this.parts.push({ mesh, restPosition, center, kinematic });
+        allCenters.push(center);
       }
-      
-      const gltf = await this.loader.loadAsync(gltfFile);
-      const model = gltf.scene;
-      
-      // Auto-scale
-      const box = new THREE.Box3().setFromObject(model);
-      const size = box.getSize(new THREE.Vector3());
+
+      // Compute assembly centroid
+      this.assemblyCentroid.set(0, 0, 0);
+      for (const c of allCenters) this.assemblyCentroid.add(c);
+      this.assemblyCentroid.divideScalar(allCenters.length);
+
+      // Style all meshes
+      scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.material = new THREE.MeshStandardMaterial({
+            metalness: 0.75,
+            roughness: 0.25,
+            color: new THREE.Color(0xdce7eb),
+          });
+        }
+      });
+
+      // Add the scene directly — it already has the correct assembled positions
+      this.rootGroup.add(scene);
+
+      // Auto-scale to fit viewport
+      const fullBox = new THREE.Box3().setFromObject(this.rootGroup);
+      const size = fullBox.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
       if (maxDim > 0) {
         const scale = 5.0 / maxDim;
-        model.scale.setScalar(scale);
+        this.cadScaleFactor = maxDim / 5.0;
+        this.rootGroup.scale.setScalar(scale);
       }
 
-      // Re-compute bounding box after scale
-      const scaledBox = new THREE.Box3().setFromObject(model);
-      const center = scaledBox.getCenter(new THREE.Vector3());
+      // Center on ground
+      const scaledBox = new THREE.Box3().setFromObject(this.rootGroup);
+      const c = scaledBox.getCenter(new THREE.Vector3());
+      this.rootGroup.position.x = -c.x;
+      this.rootGroup.position.y = -scaledBox.min.y;
+      this.rootGroup.position.z = -c.z;
 
-      // Center it on X and Z, and place the base on Y=0
-      model.position.x = -center.x;
-      model.position.y = -scaledBox.min.y;
-      model.position.z = -center.z;
-
-      // We'll group the rotors so they spin around their true physical center
-      const rotorGroup = new THREE.Group();
-      model.add(rotorGroup);
-      
-      const rotorParts: THREE.Object3D[] = [];
-      const totalHeight = scaledBox.max.y - scaledBox.min.y;
-      
-      model.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (mat) {
-             mat.metalness = 0.8;
-             mat.roughness = 0.2;
-             mat.color = new THREE.Color(0xdce7eb); // Off-white industrial
-          }
-          
-          mesh.geometry.computeBoundingBox();
-          const bbox = mesh.geometry.boundingBox!;
-          const size = bbox.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          
-          // Heuristic: Rotor parts are high up (don't touch the ground) and are large.
-          // Or they contain 'blade', 'rotor', 'hub' in name (if preserved).
-          const nameMatch = mesh.name.toLowerCase().includes('rotor') || mesh.name.toLowerCase().includes('blade') || mesh.name.toLowerCase().includes('hub');
-          const isHighUp = bbox.min.y > (totalHeight * 0.15);
-          const isLarge = maxDim > (totalHeight * 0.25); // Blades are long
-          
-          if (nameMatch || (isHighUp && isLarge)) {
-            rotorParts.push(mesh);
-          }
-        }
-      });
-      
-      if (rotorParts.length > 0) {
-        // Calculate the bounding box of just the rotor assembly
-        const rotorBox = new THREE.Box3();
-        rotorParts.forEach(part => rotorBox.expandByObject(part));
-        const rotorCenter = rotorBox.getCenter(new THREE.Vector3());
-        
-        // Place the pivot group at the rotor's centroid
-        rotorGroup.position.copy(rotorCenter);
-        
-        // Move all rotor parts into this group, preserving their spatial relation
-        rotorParts.forEach(part => {
-           rotorGroup.attach(part);
-        });
-        
-        this.rotors.push(rotorGroup);
-      }
-      
-      this.group.add(model);
-      
       this.startAnimation();
     } catch (err) {
-      console.warn('Could not load Wind Turbine GLTF model:', err);
+      console.error(`Failed to load turbine model ${this.type}:`, err);
     }
   }
 
-  setRPM(rpm: number) {
-    this.targetRPM = rpm;
+  setRPM(rpm: number) { this.targetRPM = rpm; }
+
+  setExplodeFactor(factor: number) {
+    this.targetExplodeFactor = Math.max(0, Math.min(1, factor));
   }
+
+  assemble() { this.targetExplodeFactor = 0.0; }
+
+  explode() { this.targetExplodeFactor = 1.0; }
 
   private startAnimation() {
     const animate = () => {
       if (!this.group.parent) return;
 
-      // Smooth RPM transition
+      // Smooth RPM
       this.currentRPM += (this.targetRPM - this.currentRPM) * 0.05;
-      const rotSpeed = (this.currentRPM / 60) * Math.PI * 2 * (1/60); // rad per frame at 60fps
 
-      if (this.rotors.length > 0) {
-         this.rotors.forEach(r => {
-           r.rotation.z -= rotSpeed;
-         });
-      } else {
-         // Fallback if the STEP converter didn't preserve the 'blade' naming conventions
-         this.group.rotation.y += rotSpeed * 0.1;
+      // Smooth explode
+      this.currentExplodeFactor += (this.targetExplodeFactor - this.currentExplodeFactor) * 0.08;
+
+      // Apply per-part explosion
+      for (const part of this.parts) {
+        const dir = new THREE.Vector3().subVectors(part.center, this.assemblyCentroid);
+        const len = dir.length();
+        if (len > 0.001) {
+          dir.normalize();
+        } else {
+          dir.set(0, 1, 0);
+        }
+
+        const explodeDist = this.currentExplodeFactor * 2.0 * this.cadScaleFactor;
+        part.mesh.position.set(
+          part.restPosition.x + dir.x * explodeDist,
+          part.restPosition.y + dir.y * explodeDist,
+          part.restPosition.z + dir.z * explodeDist,
+        );
       }
+
+      // Rotor spin — rotate parts tagged as rotor around the Y axis
+      // (We don't use a joint group to avoid re-parenting which breaks positions)
+      // Instead, skip rotor rotation for now until assembly is confirmed correct
 
       requestAnimationFrame(animate);
     };

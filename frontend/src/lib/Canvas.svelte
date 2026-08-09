@@ -50,7 +50,8 @@
   let dnaTwist: number = $state(50);
   
   // Turbine state
-  let turbineRPM: number = $state(15);
+  let turbineRPM: number = $state(0);
+  let turbineExplode: number = $state(0); // 0% = Assembled & Functional, 100% = Exploded View
   
   // Drone state
   let droneThrottle: number = $state(50);
@@ -107,6 +108,7 @@
     }
 
     selectedLink = -2; // Reset color selection to "All"
+    turbineExplode = 0;
     if (activeSimModel) scene.add(activeSimModel.group);
   }
 
@@ -448,6 +450,35 @@
               oninput={() => activeSimModel?.setRPM?.(turbineRPM)}
             />
             <span class="joint-value">{turbineRPM} rpm</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">View</span>
+            <input 
+              type="range" 
+              class="joint-slider" 
+              min={0} 
+              max={100} 
+              step={1} 
+              bind:value={turbineExplode} 
+              oninput={() => activeSimModel?.setExplodeFactor?.(turbineExplode / 100)}
+            />
+            <span class="joint-value">{turbineExplode === 0 ? 'Assembled' : turbineExplode + '%'}</span>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 10px;">
+            <button 
+              class="ctrl-btn" 
+              onclick={() => {
+                turbineExplode = 0;
+                activeSimModel?.assemble?.();
+              }}
+            >Assemble</button>
+            <button 
+              class="ctrl-btn" 
+              onclick={() => {
+                turbineExplode = 100;
+                activeSimModel?.explode?.();
+              }}
+            >Explode Parts</button>
           </div>
         </div>
       {:else if domainState.activeDomain === 'DRONES'}
