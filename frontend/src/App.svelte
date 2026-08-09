@@ -192,7 +192,6 @@
   .brand .subtitle {
     font-size: 0.7rem;
     color: var(--text-muted);
-    font-family: var(--font-mono);
   }
 
   /* ── Header Actions ── */

@@ -434,7 +434,6 @@
     gap: 6px;
     padding: 6px 14px;
     font-size: 0.72rem;
-    font-family: var(--font-mono);
     color: var(--text-muted);
     background: transparent;
     border: 1px solid transparent;
@@ -570,7 +569,6 @@
   /* Control Panel Styles */
   .panel-heading {
     font-size: 0.68rem;
-    font-family: var(--font-mono);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1.2px;
@@ -581,7 +579,7 @@
   .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   .canvas-controls button {
     background: var(--bg-chassis); color: var(--text-main); border: 1px solid var(--card-border);
-    padding: 6px 10px; border-radius: 5px; cursor: pointer; font-family: var(--font-mono);
+    padding: 6px 10px; border-radius: 5px; cursor: pointer;
     font-size: 0.72rem; transition: all 0.15s ease; font-weight: 500;
   }
   .canvas-controls button:hover { background: var(--card-border); }
@@ -636,7 +634,6 @@
     border-radius: 4px;
     padding: 3px 8px;
     font-size: 0.72rem;
-    font-family: var(--font-mono);
     outline: none;
     cursor: pointer;
   }
@@ -650,7 +647,6 @@
     font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
-    font-family: var(--font-mono);
   }
 
   .copilot-btn {
@@ -662,7 +658,6 @@
     font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
-    font-family: var(--font-mono);
   }
 
   .copilot-btn:hover {
