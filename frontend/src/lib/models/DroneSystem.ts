@@ -3,6 +3,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { WindFluidField } from '../physics/WindFluidField';
 import { FluidStreamlines } from './FluidStreamlines';
+import { Multivector } from 'engine';
+import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
 
 interface DroneInstance {
   mesh: THREE.Group;
@@ -10,6 +12,7 @@ interface DroneInstance {
   targetOffset: THREE.Vector3;
   velocity: THREE.Vector3;
   lag: number;
+  ltcNetwork: CliffordLiquidNetwork;
 }
 
 export class DroneSystem {
@@ -95,7 +98,8 @@ export class DroneSystem {
           rotors: rotors,
           targetOffset: offset,
           velocity: new THREE.Vector3(),
-          lag: 1.0 + Math.random() * 2.0 // Individual response lag
+          lag: 1.0 + Math.random() * 2.0, // Individual response lag
+          ltcNetwork: new CliffordLiquidNetwork(1, 1) // Geometric NC: 1 Node, 1 Input (Wind)
         });
       }
       
@@ -147,10 +151,20 @@ export class DroneSystem {
         const force = idealPos.clone().sub(drone.mesh.position).multiplyScalar(1.5 / drone.lag);
         drone.velocity.add(force.multiplyScalar(dt));
 
-        // Aerodynamic wind force coupling
+        // Aerodynamic wind force coupling via Clifford-Liquid Neural Network
         if (this.fluidCoupled && this.fluidField) {
           const windVel = this.fluidField.getVelocityAt(drone.mesh.position.x, drone.mesh.position.y, drone.mesh.position.z, time);
-          drone.velocity.add(windVel.clone().multiplyScalar(dt * 0.25));
+          
+          // GNC: Pass wind disturbance into the equivariant Clifford LTC
+          const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
+          const ltcOut = drone.ltcNetwork.forward([windMV], dt);
+          const outMV = ltcOut[0];
+          
+          // The embodied neural network outputs a continuous corrective force
+          const ltcCorrection = new THREE.Vector3(outMV.get_vector_x(), outMV.get_vector_y(), outMV.get_vector_z());
+          
+          drone.velocity.add(windVel.clone().multiplyScalar(dt * 0.25)); // Environmental wind
+          drone.velocity.add(ltcCorrection.multiplyScalar(dt * 5.0)); // Intelligent active stabilization
         }
 
         drone.velocity.multiplyScalar(0.92); // damping

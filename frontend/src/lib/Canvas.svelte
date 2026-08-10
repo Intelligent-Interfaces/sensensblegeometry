@@ -28,6 +28,8 @@
   import { UmbrellaSystem } from './models/UmbrellaSystem';
   import { DNASystem } from './models/DNASystem';
   import { FlowerSystem } from './models/FlowerSystem';
+  import { GeometricNCSystem } from './models/GeometricNCSystem';
+  import { GCPExporter } from './physics/GCPExporter';
 
   // Domain state tracking
   let activeSimModel: any = $state();
@@ -48,6 +50,7 @@
 
   // DNA state
   let dnaTwist: number = $state(50);
+  let dnaSupercoil: number = $state(0);
   
   // Fluid dynamics control state
   let windSpeed: number = $state(8.0);
@@ -106,11 +109,13 @@
       activeSimModel = new CycloSystem(newType);
       activeSimModel.setCategory(cycloCategory);
     } else if (domainState.activeDomain === 'UMBRELLAS') {
-      activeSimModel = new UmbrellaSystem(newType);
+      activeSimModel = new UmbrellaSystem(domainState.activeModelId);
     } else if (domainState.activeDomain === 'DNA_STRUCTURES') {
-      activeSimModel = new DNASystem(newType);
+      activeSimModel = new DNASystem(domainState.activeModelId);
     } else if (domainState.activeDomain === 'FLOWERS') {
-      activeSimModel = new FlowerSystem(newType);
+      activeSimModel = new FlowerSystem(domainState.activeModelId);
+    } else if (domainState.activeDomain === 'GEOMETRIC_NC') {
+      activeSimModel = new GeometricNCSystem(domainState.activeModelId);
     }
 
     selectedLink = -2; // Reset color selection to "All"
@@ -466,6 +471,11 @@
             <input type="range" class="joint-slider" min={0} max={100} step={1} bind:value={vortexStrength} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.circulationGamma = vortexStrength; }} />
             <span class="joint-value">{vortexStrength}</span>
           </div>
+          <div style="margin-top: 15px;">
+            <button class="ctrl-btn" style="width: 100%; background: #4f46e5; color: white;" onclick={() => {
+              if (activeSimModel?.ltcNetwork) GCPExporter.downloadExport(activeSimModel.type || "Turbine", activeSimModel.ltcNetwork, { cyclogenesis_turbulence: turbulence });
+            }}>Deploy to GCP HPC</button>
+          </div>
         </div>
 
         <div class="ctrl-section">
@@ -580,6 +590,13 @@
             <input type="range" class="joint-slider" min={0} max={100} step={1} bind:value={vortexStrength} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.circulationGamma = vortexStrength; }} />
             <span class="joint-value">{vortexStrength}</span>
           </div>
+          <div style="margin-top: 15px;">
+            <button class="ctrl-btn" style="width: 100%; background: #4f46e5; color: white;" onclick={() => {
+              // Get first drone's network if applicable
+              const network = activeSimModel?.drones?.[0]?.ltcNetwork || activeSimModel?.ltcNetwork;
+              if (network) GCPExporter.downloadExport(activeSimModel.type || "DroneSwarm", network, { cyclogenesis_turbulence: turbulence, swarm_size: 7 });
+            }}>Deploy to GCP HPC</button>
+          </div>
         </div>
 
         <div class="ctrl-section">
@@ -636,16 +653,13 @@
           <span class="ctrl-section-label">DNA Parameters</span>
           <div class="joint-row">
             <span class="joint-label">Twist</span>
-            <input 
-              type="range" 
-              class="joint-slider" 
-              min={0} 
-              max={100} 
-              step={1} 
-              bind:value={dnaTwist} 
-              oninput={() => activeSimModel?.setTwist?.(dnaTwist)}
-            />
-            <span class="joint-value">{dnaTwist === 50 ? 'Auto' : dnaTwist + '%'}</span>
+            <input type="range" class="joint-slider" min={0} max={360} step={1} bind:value={dnaTwist} oninput={() => { if (activeSimModel) activeSimModel.targetTwist = dnaTwist; }} />
+            <span class="joint-value">{dnaTwist}°</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Supercoil</span>
+            <input type="range" class="joint-slider" min={-50} max={50} step={1} bind:value={dnaSupercoil} oninput={() => { if (activeSimModel) activeSimModel.targetSupercoil = dnaSupercoil; }} />
+            <span class="joint-value">{dnaSupercoil}</span>
           </div>
         </div>
       {:else if domainState.activeDomain === 'FLOWERS'}
@@ -679,6 +693,51 @@
             <span class="joint-value">{flowerDivergence.toFixed(1)}°</span>
           </div>
           {/if}
+        </div>
+      {:else if domainState.activeDomain === 'GEOMETRIC_NC'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Cyclogenesis Environment</span>
+          <div class="joint-row">
+            <span class="joint-label">Wind</span>
+            <input type="range" class="joint-slider" min={0} max={15} step={0.5} bind:value={windSpeed} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.ambientWindSpeed = windSpeed; }} />
+            <span class="joint-value">{windSpeed}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Turbulence</span>
+            <input type="range" class="joint-slider" min={0} max={1.0} step={0.05} bind:value={turbulence} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.turbulenceIntensity = turbulence; }} />
+            <span class="joint-value">{turbulence}</span>
+          </div>
+        </div>
+
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Observability</span>
+          <div class="joint-row" style="margin-bottom: 10px;">
+            <span class="joint-label" style="width:auto;">Visual Density:</span>
+            <input type="range" class="joint-slider" min={0.0} max={1.0} step={0.01} oninput={(e) => {
+              if (activeSimModel) activeSimModel.visualDensity = parseFloat(e.currentTarget.value);
+            }} />
+          </div>
+          <div class="joint-row">
+            <span class="joint-label" style="width:auto; font-family: monospace;">Liquid Tau (τ):</span>
+            <span class="joint-value" style="font-family: monospace;">
+              {#if activeSimModel?.currentTau !== undefined}
+                {activeSimModel.currentTau.toFixed(3)}
+              {/if}
+            </span>
+          </div>
+          <div class="joint-row">
+            <span class="joint-label" style="width:auto; font-family: monospace;">Sys. Strain:</span>
+            <span class="joint-value" style="font-family: monospace;">
+              {#if activeSimModel?.systemStrain !== undefined}
+                {activeSimModel.systemStrain.toFixed(3)}
+              {/if}
+            </span>
+          </div>
+          <div style="margin-top: 15px;">
+            <button class="ctrl-btn" style="width: 100%; background: #4f46e5; color: white;" onclick={() => {
+              if (activeSimModel?.ltcNetwork) GCPExporter.downloadExport(activeSimModel.type || "MetaMaterial", activeSimModel.ltcNetwork, { cyclogenesis_turbulence: turbulence });
+            }}>Deploy to GCP HPC</button>
+          </div>
         </div>
       {/if}
     </div>

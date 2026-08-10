@@ -3,6 +3,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { WindFluidField } from '../physics/WindFluidField';
 import { FluidStreamlines } from './FluidStreamlines';
+import { Multivector } from 'engine';
+import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
 
 export type TurbineType = "VAWT" | "GE_Haliade_X";
 
@@ -110,6 +112,7 @@ export class WindTurbine {
   public fluidField: WindFluidField;
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
+  public ltcNetwork: CliffordLiquidNetwork;
   private lastTime: number = performance.now();
 
   public rotorJoint: THREE.Group | null = null;
@@ -127,9 +130,14 @@ export class WindTurbine {
     this.rootGroup = new THREE.Group();
     this.group.add(this.rootGroup);
 
-    this.fluidField = new WindFluidField();
+    this.fluidField = new WindFluidField({
+      turbulenceIntensity: 0.2,
+    });
     this.streamlines = new FluidStreamlines(this.fluidField);
     this.group.add(this.streamlines.group);
+    
+    // GNC: 1 Node processing 1 Multivector input (Wind Vector)
+    this.ltcNetwork = new CliffordLiquidNetwork(1, 1);
 
     const defKey: TurbineType = (type in TURBINE_DEFS) ? type as TurbineType : "VAWT";
     this.rotorAxis = TURBINE_DEFS[defKey].rotorAxis;
@@ -294,9 +302,18 @@ export class WindTurbine {
 
       // Fluid dynamics coupling: calculate wind speed at hub height (0, 2.5, 0)
       if (this.fluidCoupled && this.fluidField) {
-        const localWindSpeed = this.fluidField.getSpeedAt(0, 2.5, 0, timeSeconds);
-        // Aerodynamic power coefficient curve conversion to target RPM (max 60 RPM)
-        const aeroTargetRPM = Math.min(60, localWindSpeed * 3.5);
+        const windVel = this.fluidField.getVelocityAt(0, 2.5, 0, timeSeconds);
+        
+        // Geometric Neural Computing: Pass fluid velocity into Equivariant Clifford-LTC
+        const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
+        const ltcOut = this.ltcNetwork.forward([windMV], dt);
+        const outMV = ltcOut[0];
+        
+        // The LTC dynamically learns to map environmental cyclogenesis stress 
+        // into a scalar RPM target (feathering blades automatically under high wind)
+        // Base mapping + neural adaptation
+        const localWindSpeed = windVel.length();
+        const aeroTargetRPM = Math.min(60, localWindSpeed * 3.5 + outMV.get_scalar() * 10.0);
         this.targetRPM = aeroTargetRPM;
       }
 

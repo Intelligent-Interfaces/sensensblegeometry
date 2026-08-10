@@ -1,4 +1,4 @@
-export type DomainType = 'ROBOTICS' | 'WIND_TURBINES' | 'CYCLOGENESIS' | 'DRONES' | 'UMBRELLAS' | 'DNA_STRUCTURES' | 'FLOWERS';
+export type DomainType = 'ROBOTICS' | 'WIND_TURBINES' | 'CYCLOGENESIS' | 'DRONES' | 'UMBRELLAS' | 'DNA_STRUCTURES' | 'FLOWERS' | 'GEOMETRIC_NC';
 
 export interface ModelSystem {
   id: string;
@@ -56,6 +56,12 @@ export const DOMAINS: Record<DomainType, { label: string; models: ModelSystem[] 
       { id: 'Dandelion', name: 'Dandelion', details: 'Pappus' },
       { id: 'Sunflower', name: 'Sunflower', details: 'Fibonacci' }
     ]
+  },
+  GEOMETRIC_NC: {
+    label: 'Geometric NC',
+    models: [
+      { id: 'Observability_Dashboard', name: 'Observability', details: 'Meta-Material' }
+    ]
   }
 };
 
@@ -70,7 +76,8 @@ class DomainState {
     DRONES: 'Quadcopter_DJI',
     UMBRELLAS: 'Patio_Umbrella',
     DNA_STRUCTURES: 'B_DNA',
-    FLOWERS: 'Dandelion'
+    FLOWERS: 'Dandelion',
+    GEOMETRIC_NC: 'Observability_Dashboard'
   });
 
   get currentModels() {

@@ -3,6 +3,7 @@
   import Canvas from './lib/Canvas.svelte';
   import Notebook from './lib/Notebook.svelte';
   import GuidedTour from './lib/GuidedTour.svelte';
+  import GNCStudio from './lib/components/GNCStudio.svelte';
   import { tourState } from './lib/tourState.svelte';
   import { domainState, DOMAINS, type DomainType } from './lib/domainState.svelte';
 
@@ -129,16 +130,8 @@
       <Canvas bind:this={canvasComponent} />
     </section>
 
-    <section class="pane copilot-pane" class:hidden={activeStage !== 2}>
-      <div class="placeholder-pane">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-fuse)" stroke-width="1.5">
-          <path d="M12 2a10 10 0 1 0 10 10"/>
-          <path d="M12 6v6l4 2"/>
-          <circle cx="18" cy="6" r="3" fill="var(--accent-fuse)" opacity="0.3"/>
-        </svg>
-        <p>Geometric NC — coming soon</p>
-        <span>Equivariant neural networks for geometric predictions.</span>
-      </div>
+    <section class="pane gnc-pane" class:hidden={activeStage !== 2}>
+      <GNCStudio />
     </section>
   </div>
 
