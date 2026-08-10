@@ -193,7 +193,7 @@
 
   .mode-toggle {
     display: flex;
-    background: rgba(0,0,0,0.3);
+    background: var(--card-border);
     border-radius: 6px;
     padding: 2px;
     gap: 2px;
@@ -205,22 +205,22 @@
     border: none;
     background: transparent;
     font-size: 0.68rem;
-    color: rgba(255,255,255,0.4);
+    color: var(--text-muted);
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
   }
   .mode-btn.active {
-    background: rgba(255,255,255,0.1);
-    color: #e2e8f0;
+    background: var(--panel-bg);
+    color: var(--text-main);
   }
 
   .loss-canvas {
     width: 100%;
     height: 100px;
     border-radius: 8px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--panel-bg);
+    border: 1px solid var(--card-border);
   }
 
   .tp-controls {
@@ -232,23 +232,23 @@
   .ctrl-icon-btn {
     padding: 5px 10px;
     border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.7);
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-main);
     font-size: 0.68rem;
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
   }
-  .ctrl-icon-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #fff; }
+  .ctrl-icon-btn:hover:not(:disabled) { background: var(--panel-bg); }
   .ctrl-icon-btn:disabled { opacity: 0.35; cursor: default; }
-  .ctrl-icon-btn.play { background: rgba(16,185,129,0.15); border-color: #10b981; color: #10b981; }
+  .ctrl-icon-btn.play { background: rgba(16,185,129,0.15); border-color: var(--accent-green); color: var(--accent-green); }
   .ctrl-icon-btn.play:hover:not(:disabled) { background: rgba(16,185,129,0.3); }
   .ctrl-icon-btn.reset { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
 
   .epoch-count {
     font-size: 0.68rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-family: monospace;
     margin-left: auto;
   }
@@ -260,17 +260,17 @@
   }
   .hyper-label {
     font-size: 0.65rem;
-    color: #64748b;
+    color: var(--text-muted);
     width: 110px;
     flex-shrink: 0;
   }
   .hyper-slider {
     flex: 1;
-    accent-color: #8b5cf6;
+    accent-color: var(--accent-fuse);
   }
   .hyper-val {
     font-size: 0.65rem;
-    color: #8b5cf6;
+    color: var(--accent-fuse);
     font-family: monospace;
     width: 50px;
     text-align: right;

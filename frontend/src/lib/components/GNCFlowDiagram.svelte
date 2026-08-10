@@ -91,8 +91,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 6px;
     padding: 8px 10px;
     min-width: 140px;
@@ -108,14 +108,14 @@
   .layer-num {
     font-size: 0.6rem;
     font-weight: 800;
-    color: #8b5cf6;
+    color: var(--accent-fuse);
     font-family: monospace;
   }
 
   .layer-name {
     font-size: 0.7rem;
     font-weight: 600;
-    color: #e2e8f0;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -123,7 +123,7 @@
 
   .layer-dim {
     font-size: 0.6rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-family: monospace;
     margin-left: auto;
   }
@@ -140,7 +140,7 @@
     justify-content: space-between;
     padding: 2px 6px;
     border-radius: 4px;
-    background: rgba(255,255,255,0.03);
+    background: var(--panel-bg);
     border-left: 3px solid var(--badge-color);
   }
 
@@ -153,7 +153,7 @@
 
   .g-meaning {
     font-size: 0.58rem;
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 
   .flow-arrow {
@@ -161,7 +161,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    color: rgba(255,255,255,0.25);
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
@@ -169,6 +169,6 @@
     font-size: 0.52rem;
     font-family: monospace;
     white-space: nowrap;
-    color: rgba(255,255,255,0.3);
+    color: var(--text-muted);
   }
 </style>

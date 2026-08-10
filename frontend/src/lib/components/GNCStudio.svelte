@@ -135,8 +135,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #0f172a;
-    color: #e2e8f0;
+    background: var(--bg-chassis);
+    color: var(--text-main);
     font-family: 'Inter', system-ui, sans-serif;
     position: relative;
     overflow: hidden;
@@ -148,14 +148,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--card-border);
+    background: var(--panel-bg);
     flex-shrink: 0;
     gap: 16px;
   }
 
   .toolbar-left { display: flex; align-items: center; gap: 10px; }
-  .studio-brand { font-size: 0.82rem; font-weight: 700; color: #e2e8f0; letter-spacing: 0.01em; }
+  .studio-brand { font-size: 0.82rem; font-weight: 700; color: var(--text-main); letter-spacing: 0.01em; }
   .studio-badge {
     font-size: 0.6rem;
     font-family: monospace;
@@ -170,7 +170,7 @@
 
   .layout-toggle {
     display: flex;
-    background: rgba(0,0,0,0.3);
+    background: var(--card-border);
     border-radius: 8px;
     padding: 3px;
     gap: 2px;
@@ -181,13 +181,13 @@
     border: none;
     background: transparent;
     font-size: 0.7rem;
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
   }
-  .layout-btn:hover { color: rgba(255,255,255,0.7); }
-  .layout-btn.active { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+  .layout-btn:hover { color: var(--text-main); }
+  .layout-btn.active { background: var(--panel-bg); color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
   .toolbar-right { display: flex; align-items: center; gap: 8px; }
 
@@ -237,8 +237,9 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid var(--card-border);
     overflow: hidden;
+    background: var(--panel-bg);
   }
 
   .studio-section {
@@ -247,7 +248,7 @@
   }
 
   .builder-section { flex: 1.4; overflow: hidden; display: flex; flex-direction: column; }
-  .training-section { flex: 1; border-top: 1px solid rgba(255,255,255,0.05); }
+  .training-section { flex: 1; border-top: 1px solid var(--card-border); }
   .studio-divider { height: 0; }
 
   /* ── Right Panel (3D Canvas) ── */
@@ -256,7 +257,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #0f172a;
+    background: var(--bg-chassis);
   }
 
   .canvas-header {
@@ -264,7 +265,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--card-border);
     flex-shrink: 0;
   }
 
@@ -272,7 +273,7 @@
     font-size: 0.67rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #475569;
+    color: var(--text-muted);
     font-weight: 600;
   }
 
@@ -305,7 +306,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: #334155;
+    color: var(--text-muted);
   }
   .canvas-placeholder p { font-size: 0.9rem; font-weight: 600; margin: 0; }
   .canvas-placeholder span { font-size: 0.7rem; text-align: center; max-width: 220px; }
@@ -319,9 +320,9 @@
     margin: 12px;
     padding: 8px 18px;
     border-radius: 8px;
-    border: 1px dashed rgba(255,255,255,0.15);
+    border: 1px dashed var(--card-border);
     background: transparent;
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
     font-size: 0.72rem;
     cursor: pointer;
     font-family: inherit;

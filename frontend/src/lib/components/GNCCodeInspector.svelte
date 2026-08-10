@@ -234,9 +234,9 @@ end Behavioral;
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #0d1117;
+    background: var(--bg-chassis);
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--card-border);
     overflow: hidden;
   }
 
@@ -245,7 +245,7 @@ end Behavioral;
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--card-border);
     flex-shrink: 0;
   }
 
@@ -254,14 +254,14 @@ end Behavioral;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
   .tab-row {
     display: flex;
     gap: 2px;
-    background: rgba(0,0,0,0.3);
+    background: var(--card-border);
     border-radius: 6px;
     padding: 2px;
   }
@@ -272,12 +272,12 @@ end Behavioral;
     border-radius: 5px;
     background: transparent;
     font-size: 0.67rem;
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
     cursor: pointer;
     font-family: monospace;
     transition: all 0.15s;
   }
-  .tab-btn.active { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+  .tab-btn.active { background: var(--panel-bg); color: var(--text-main); }
 
   .close-btn {
     margin-left: auto;
@@ -304,7 +304,7 @@ end Behavioral;
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 0.68rem;
     line-height: 1.6;
-    color: #a6e3a1;
+    color: var(--accent-green);
     tab-size: 4;
   }
 
@@ -313,13 +313,13 @@ end Behavioral;
     align-items: center;
     justify-content: space-between;
     padding: 8px 14px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid var(--card-border);
     flex-shrink: 0;
   }
 
   .inspector-hint {
     font-size: 0.62rem;
-    color: #475569;
+    color: var(--text-muted);
     font-family: monospace;
   }
 
@@ -335,15 +335,15 @@ end Behavioral;
     transition: all 0.15s;
   }
   .action-btn.copy {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.6);
+    background: var(--card-bg);
+    border-color: var(--card-border);
+    color: var(--text-muted);
   }
-  .action-btn.copy:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .action-btn.copy:hover { background: var(--panel-bg); color: var(--text-main); }
   .action-btn.export {
-    background: rgba(79,70,229,0.3);
-    border-color: #6366f1;
-    color: #c7d2fe;
+    background: rgba(124,58,237,0.3);
+    border-color: var(--accent-fuse);
+    color: var(--accent-fuse);
   }
-  .action-btn.export:hover { background: rgba(79,70,229,0.5); }
+  .action-btn.export:hover { background: rgba(124,58,237,0.5); }
 </style>
