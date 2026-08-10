@@ -66,48 +66,35 @@
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const c = ctx;
     const W = canvas.width;
     const H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
+    c.clearRect(0, 0, W, H);
 
     // Background grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-    ctx.lineWidth = 1;
+    c.strokeStyle = 'rgba(255,255,255,0.06)';
+    c.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = (H / 4) * i;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
     }
 
     function plotLine(data: number[], color: string, maxVal: number) {
       if (data.length < 2) return;
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
+      c.beginPath();
+      c.strokeStyle = color;
+      c.lineWidth = 1.5;
       data.forEach((v, i) => {
         const x = (i / HISTORY_LEN) * W;
         const y = H - (v / maxVal) * H * 0.9 - 4;
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
       });
-      ctx.stroke();
+      c.stroke();
     }
 
     plotLine(lossHistory,   '#ef4444', 1.2);
     plotLine(equivHistory,  '#8b5cf6', 0.5);
-    plotLine(strainHistory, '#10b981', 0.5);
-
-    // Legend
-    const items = [
-      { label: 'Loss', color: '#ef4444', val: lossHistory[lossHistory.length-1] },
-      { label: 'Equiv Err', color: '#8b5cf6', val: equivHistory[equivHistory.length-1] },
-      { label: 'Strain', color: '#10b981', val: strainHistory[strainHistory.length-1] },
-    ];
-    ctx.font = '9px monospace';
-    items.forEach((item, i) => {
-      ctx.fillStyle = item.color;
-      ctx.fillRect(6 + i * 80, 5, 8, 8);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText(`${item.label}: ${item.val?.toFixed(4) ?? '---'}`, 18 + i * 80, 13);
-    });
+    plotLine(strainHistory, '#10b981', 1.0);
   }
 
   function startTraining() {
@@ -159,13 +146,13 @@
 
   <!-- Hyperparams -->
   <div class="hyper-row">
-    <label class="hyper-label">Learning Rate (α)</label>
-    <input type="range" class="hyper-slider" min={0.0001} max={0.1} step={0.0001} bind:value={lr} />
+    <label for="gnc-lr-slider" class="hyper-label">Learning Rate (α)</label>
+    <input id="gnc-lr-slider" type="range" class="hyper-slider" min={0.0001} max={0.1} step={0.0001} bind:value={lr} />
     <span class="hyper-val">{lr.toFixed(4)}</span>
   </div>
   <div class="hyper-row">
-    <label class="hyper-label">ODE Step (Δt)</label>
-    <input type="range" class="hyper-slider" min={0.001} max={0.1} step={0.001} bind:value={dtStep} />
+    <label for="gnc-dt-slider" class="hyper-label">ODE Step (Δt)</label>
+    <input id="gnc-dt-slider" type="range" class="hyper-slider" min={0.001} max={0.1} step={0.001} bind:value={dtStep} />
     <span class="hyper-val">{dtStep.toFixed(3)}</span>
   </div>
 </div>

@@ -124,7 +124,7 @@
         layers={modelLayers}
         trainingState={trainingState}
         onClose={() => showInspector = false}
-        onExport={(code) => console.log('Exported', code.length, 'chars')}
+        onExport={(code: string) => console.log('Exported', code.length, 'chars')}
       />
     </div>
   {/if}

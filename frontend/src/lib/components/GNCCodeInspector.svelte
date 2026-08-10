@@ -14,12 +14,19 @@
     activation: string;
   }
 
+  interface Props {
+    layers?: NetworkLayer[];
+    trainingState?: any;
+    onClose?: () => void;
+    onExport?: (code: string) => void;
+  }
+
   let {
     layers = [] as NetworkLayer[],
     trainingState = {} as any,
     onClose = () => {},
     onExport = (_code: string) => {},
-  } = $props();
+  }: Props = $props();
 
   let editableCode = $state('');
   let activeTab = $state<'jax' | 'vhdl' | 'schema'>('jax');

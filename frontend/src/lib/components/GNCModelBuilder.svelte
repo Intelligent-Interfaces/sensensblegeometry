@@ -117,7 +117,8 @@
 
     <div class="task-grid">
       {#each TASK_TEMPLATES as task}
-        <div
+        <button
+          type="button"
           class="task-card"
           class:selected={selectedTask === task.id}
           onclick={() => applyTaskTemplate(task)}
@@ -131,7 +132,7 @@
             <span class="task-title">{task.title}</span>
             <span class="task-sub">{task.subtitle}</span>
           </div>
-        </div>
+        </button>
       {/each}
     </div>
 
@@ -168,18 +169,18 @@
 
     <div class="sandbox-inputs">
       <div class="slider-row">
-        <label>Wind X (e₁):</label>
-        <input type="range" min="-10" max="10" step="0.5" bind:value={testWindX} />
+        <label for="wind-x">Wind X (e₁):</label>
+        <input id="wind-x" type="range" min="-10" max="10" step="0.5" bind:value={testWindX} />
         <span>{testWindX.toFixed(1)}</span>
       </div>
       <div class="slider-row">
-        <label>Wind Y (e₂):</label>
-        <input type="range" min="-10" max="10" step="0.5" bind:value={testWindY} />
+        <label for="wind-y">Wind Y (e₂):</label>
+        <input id="wind-y" type="range" min="-10" max="10" step="0.5" bind:value={testWindY} />
         <span>{testWindY.toFixed(1)}</span>
       </div>
       <div class="slider-row">
-        <label>Wind Z (e₃):</label>
-        <input type="range" min="-10" max="10" step="0.5" bind:value={testWindZ} />
+        <label for="wind-z">Wind Z (e₃):</label>
+        <input id="wind-z" type="range" min="-10" max="10" step="0.5" bind:value={testWindZ} />
         <span>{testWindZ.toFixed(1)}</span>
       </div>
     </div>
@@ -203,7 +204,8 @@
 
     <div class="layer-stack">
       {#each layers as layer, idx}
-        <div
+        <button
+          type="button"
           class="layer-card"
           class:selected={selectedLayerIdx === idx}
           onclick={() => selectedLayerIdx = selectedLayerIdx === idx ? null : idx}
@@ -218,24 +220,27 @@
 
           <div class="layer-right">
             <span class="node-count">{layer.nodes} nodes</span>
-            <button
+            <span
               class="delete-btn"
+              role="button"
+              tabindex="0"
               onclick={(e) => { e.stopPropagation(); removeLayer(idx); }}
-            >×</button>
+              onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeLayer(idx); } }}
+            >×</span>
           </div>
-        </div>
+        </button>
 
         {#if selectedLayerIdx === idx}
           <div class="layer-editor">
             <div class="ed-row">
-              <label>Nodes:</label>
-              <input type="number" min="1" max="128" bind:value={layer.nodes}
+              <label for="nodes-layer-{idx}">Nodes:</label>
+              <input id="nodes-layer-{idx}" type="number" min="1" max="128" bind:value={layer.nodes}
                 onchange={() => { layers = [...layers]; onModelChange(layers); }} />
             </div>
 
             <!-- Grade Badges Selector -->
             <div class="ed-row flex-col">
-              <label>Multivector Grades & Physical Meanings:</label>
+              <span class="ed-heading">Multivector Grades & Physical Meanings:</span>
               <div class="grade-selector">
                 {#each Object.entries(GRADE_PHYSICAL_MAP) as [key, g]}
                   <label
@@ -260,8 +265,8 @@
 
             {#if layer.type === 'ltc_recurrent'}
               <div class="ed-row">
-                <label>Liquid Tau (τ):</label>
-                <input type="range" min="0.1" max="5.0" step="0.05" bind:value={layer.tau}
+                <label for="tau-layer-{idx}">Liquid Tau (τ):</label>
+                <input id="tau-layer-{idx}" type="range" min="0.1" max="5.0" step="0.05" bind:value={layer.tau}
                   onchange={() => { layers = [...layers]; onModelChange(layers); }} />
                 <span>{layer.tau.toFixed(2)}</span>
               </div>
@@ -305,13 +310,13 @@
   .math-help-toggle {
     font-size: 0.65rem;
     color: var(--accent-fuse);
-    background: rgba(124,58,237,0.12);
-    border: 1px solid rgba(124,58,237,0.3);
+    background: transparent;
+    border: 1px solid var(--accent-fuse);
     padding: 2px 8px;
     border-radius: 6px;
     cursor: pointer;
   }
-  .math-help-toggle:hover { background: rgba(124,58,237,0.25); }
+  .math-help-toggle:hover { background: var(--bg-chassis); }
 
   .task-grid {
     display: flex;
@@ -333,7 +338,7 @@
   .task-card:hover { background: var(--panel-bg); }
   .task-card.selected {
     border-color: var(--accent-fuse);
-    background: rgba(124,58,237,0.12);
+    box-shadow: 0 0 0 1px var(--accent-fuse);
   }
 
   .task-icon {
@@ -343,12 +348,11 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: rgba(124, 58, 237, 0.15);
+    background: transparent;
     color: var(--accent-fuse);
     flex-shrink: 0;
   }
   .task-card.selected .task-icon {
-    background: rgba(124, 58, 237, 0.3);
     color: var(--accent-fuse);
   }
   .task-content { display: flex; flex-direction: column; }
@@ -358,7 +362,7 @@
   .task-explanation {
     padding: 8px 12px;
     border-radius: 6px;
-    background: rgba(124,58,237,0.08);
+    background: var(--bg-chassis);
     border-left: 3px solid var(--accent-fuse);
     font-size: 0.68rem;
     line-height: 1.4;
@@ -372,7 +376,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 10px;
-    background: var(--panel-bg);
+    background: var(--bg-chassis);
     border-radius: 8px;
     border: 1px solid rgba(124,58,237,0.2);
   }
@@ -386,7 +390,7 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
-    background: var(--panel-bg);
+    background: var(--bg-chassis);
     border: 1px solid rgba(56,189,248,0.2);
     border-radius: 8px;
   }
@@ -417,7 +421,7 @@
     background: var(--card-bg); border: 1px solid var(--card-border);
     cursor: pointer;
   }
-  .layer-card.selected { border-color: var(--accent-fuse); background: rgba(124,58,237,0.1); }
+  .layer-card.selected { border-color: var(--accent-fuse); box-shadow: 0 0 0 1px var(--accent-fuse); }
   .layer-left { display: flex; align-items: center; gap: 8px; }
   .layer-idx { font-size: 0.68rem; font-weight: 700; color: var(--accent-fuse); font-family: monospace; }
   .layer-info { display: flex; flex-direction: column; }
@@ -434,7 +438,7 @@
 
   .layer-editor {
     display: flex; flex-direction: column; gap: 8px;
-    padding: 10px 12px; background: var(--panel-bg);
+    padding: 10px 12px; background: var(--bg-chassis);
     border-radius: 6px; border: 1px solid rgba(124,58,237,0.2);
   }
   .ed-row { display: flex; align-items: center; gap: 8px; font-size: 0.68rem; color: var(--text-muted); }
@@ -449,7 +453,7 @@
     cursor: pointer; transition: all 0.15s;
   }
   .grade-choice input { display: none; }
-  .grade-choice.active { border-color: var(--g-color); background: var(--panel-bg); }
+  .grade-choice.active { border-color: var(--g-color); background: var(--bg-chassis); }
   .gc-header { display: flex; justify-content: space-between; align-items: center; }
   .gc-sym { font-size: 0.65rem; font-weight: 700; color: var(--g-color); font-family: monospace; }
   .gc-meaning { font-size: 0.6rem; color: var(--text-main); font-weight: 600; }
