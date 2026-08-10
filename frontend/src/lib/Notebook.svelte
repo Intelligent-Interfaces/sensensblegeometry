@@ -249,6 +249,7 @@
       <div class="drag-handle"></div>
     </div>
     <div class="header-top">
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <nav class="stage-nav" onclick={(e) => e.stopPropagation()}>
         {#each stages as stage}
           <button

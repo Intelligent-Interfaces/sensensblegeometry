@@ -241,32 +241,4 @@
     pointer-events: none;
   }
 
-  /* ── Copilot placeholder ── */
-  .placeholder-pane {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 12px;
-    color: var(--text-muted);
-  }
-
-  .placeholder-pane p {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-main);
-  }
-
-  .placeholder-pane span {
-    font-size: 0.85rem;
-    max-width: 300px;
-    text-align: center;
-  }
-
-  .placeholder-pane span {
-    font-size: 0.85rem;
-    max-width: 300px;
-    text-align: center;
-  }
 </style>

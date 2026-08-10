@@ -54,6 +54,7 @@
   {/if}
 
   <!-- Bottom drag resize handle -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="card-resizer-bottom" role="separator" aria-label="Resize" onmousedown={onResizeStart}></div>
 </div>
 

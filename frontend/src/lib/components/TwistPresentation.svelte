@@ -176,7 +176,7 @@
       <div class="slide-card abstract-slide">
         <div class="slide-header-area">
           <span class="slide-category-tag">Core Scientific Pipeline</span>
-          <h2>Clifford Algebra $\text{Cl}(3,0)$ & Continuous-Time Liquid Networks</h2>
+          <h2>Clifford Algebra $\text{"{"}Cl{"}"}(3,0)$ & Continuous-Time Liquid Networks</h2>
         </div>
 
         <div class="abstract-box">
@@ -257,7 +257,7 @@
             <ul>
               <li>Cyclogenetic Dandelions, DNA</li>
               <li>Umbrellas, Mazes & Mixing</li>
-              <li>Geometric Algebra $\text{Cl}(3,0)$</li>
+              <li>Geometric Algebra $\text{"{"}Cl{"}"}(3,0)$</li>
             </ul>
           </div>
           <div class="spec-card">
