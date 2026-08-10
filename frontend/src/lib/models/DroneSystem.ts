@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { WindFluidField } from '../physics/WindFluidField';
+import { FluidStreamlines } from './FluidStreamlines';
 
 interface DroneInstance {
   mesh: THREE.Group;
@@ -21,6 +23,10 @@ export class DroneSystem {
   targetY: number = 2;
   rotSpeed: number = 0.2;
   
+  public fluidField: WindFluidField;
+  public streamlines: FluidStreamlines;
+  public fluidCoupled: boolean = true;
+
   private startTime = performance.now();
   private lastTime = performance.now();
 
@@ -34,6 +40,15 @@ export class DroneSystem {
 
     this.loader = new GLTFLoader();
     this.loader.setDRACOLoader(dracoLoader);
+
+    this.fluidField = new WindFluidField({
+      vortexCoreRadius: 2.0,
+      circulationGamma: 15.0,
+      ambientWindSpeed: 4.0,
+      turbulenceIntensity: 0.3,
+    });
+    this.streamlines = new FluidStreamlines(this.fluidField);
+    this.group.add(this.streamlines.group);
 
     this.group.position.y = 0;
     this.loadModel();
@@ -104,7 +119,12 @@ export class DroneSystem {
       const time = (now - this.startTime) / 1000;
       this.lastTime = now;
 
-      // Flocking / Swarm logic
+      // Update fluid streamlines GPU particles
+      if (this.streamlines) {
+        this.streamlines.update(dt, time);
+      }
+
+      // Flocking & Aerodynamic Swarm logic
       this.drones.forEach((drone, index) => {
         // Rotors
         if (drone.rotors.length > 0) {
@@ -123,10 +143,17 @@ export class DroneSystem {
         // Spring physics for smooth lagging movement
         const force = idealPos.clone().sub(drone.mesh.position).multiplyScalar(1.5 / drone.lag);
         drone.velocity.add(force.multiplyScalar(dt));
+
+        // Aerodynamic wind force coupling
+        if (this.fluidCoupled && this.fluidField) {
+          const windVel = this.fluidField.getVelocityAt(drone.mesh.position.x, drone.mesh.position.y, drone.mesh.position.z, time);
+          drone.velocity.add(windVel.clone().multiplyScalar(dt * 0.25));
+        }
+
         drone.velocity.multiplyScalar(0.92); // damping
         drone.mesh.position.add(drone.velocity.clone().multiplyScalar(dt * 10));
 
-        // Tilt based on velocity (fake aerodynamics)
+        // Tilt based on velocity and wind turbulence
         drone.mesh.rotation.z = -drone.velocity.x * 0.5;
         drone.mesh.rotation.x = drone.velocity.z * 0.5;
         drone.mesh.rotation.y = Math.sin(time * 0.2 + index) * 0.1;

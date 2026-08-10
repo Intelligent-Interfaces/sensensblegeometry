@@ -49,6 +49,12 @@
   // DNA state
   let dnaTwist: number = $state(50);
   
+  // Fluid dynamics control state
+  let windSpeed: number = $state(8.0);
+  let turbulence: number = $state(0.2);
+  let vortexStrength: number = $state(25.0);
+  let fluidCoupled: boolean = $state(true);
+
   // Turbine state
   let turbineRPM: number = $state(0);
   let turbineExplode: number = $state(0); // 0% = Assembled & Functional, 100% = Exploded View
@@ -437,6 +443,32 @@
         </div>
       {:else if domainState.activeDomain === 'WIND_TURBINES'}
         <div class="ctrl-section">
+          <span class="ctrl-section-label">Fluid Dynamics Coupling</span>
+          <div class="joint-row">
+            <label class="joint-label" style="width:auto; cursor:pointer;">Enable Aero: 
+              <input type="checkbox" bind:checked={fluidCoupled} onchange={(e) => {
+                if (activeSimModel) activeSimModel.fluidCoupled = e.currentTarget.checked;
+              }} style="margin-left: 6px;"/>
+            </label>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Wind (m/s)</span>
+            <input type="range" class="joint-slider" min={0} max={30} step={0.5} bind:value={windSpeed} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.ambientWindSpeed = windSpeed; }} />
+            <span class="joint-value">{windSpeed}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Turbulence</span>
+            <input type="range" class="joint-slider" min={0} max={1.0} step={0.05} bind:value={turbulence} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.turbulenceIntensity = turbulence; }} />
+            <span class="joint-value">{turbulence}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Vortex G</span>
+            <input type="range" class="joint-slider" min={0} max={100} step={1} bind:value={vortexStrength} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.circulationGamma = vortexStrength; }} />
+            <span class="joint-value">{vortexStrength}</span>
+          </div>
+        </div>
+
+        <div class="ctrl-section">
           <span class="ctrl-section-label">Turbine Settings</span>
           <div class="joint-row">
             <span class="joint-label">RPM</span>
@@ -444,12 +476,13 @@
               type="range" 
               class="joint-slider" 
               min={0} 
-              max={30} 
+              max={60} 
               step={1} 
               bind:value={turbineRPM} 
-              oninput={() => activeSimModel?.setRPM?.(turbineRPM)}
+              disabled={fluidCoupled}
+              oninput={() => { if (!fluidCoupled) activeSimModel?.setRPM?.(turbineRPM); }}
             />
-            <span class="joint-value">{turbineRPM} rpm</span>
+            <span class="joint-value">{fluidCoupled ? 'Auto (Aero)' : turbineRPM + ' rpm'}</span>
           </div>
           <div class="joint-row" style="margin-top: 10px;">
             <span class="joint-label">View</span>
@@ -523,6 +556,32 @@
           </div>
         </div>
       {:else if domainState.activeDomain === 'DRONES'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Fluid Dynamics Coupling</span>
+          <div class="joint-row">
+            <label class="joint-label" style="width:auto; cursor:pointer;">Enable Aero: 
+              <input type="checkbox" bind:checked={fluidCoupled} onchange={(e) => {
+                if (activeSimModel) activeSimModel.fluidCoupled = e.currentTarget.checked;
+              }} style="margin-left: 6px;"/>
+            </label>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Wind (m/s)</span>
+            <input type="range" class="joint-slider" min={0} max={30} step={0.5} bind:value={windSpeed} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.ambientWindSpeed = windSpeed; }} />
+            <span class="joint-value">{windSpeed}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Turbulence</span>
+            <input type="range" class="joint-slider" min={0} max={1.0} step={0.05} bind:value={turbulence} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.turbulenceIntensity = turbulence; }} />
+            <span class="joint-value">{turbulence}</span>
+          </div>
+          <div class="joint-row" style="margin-top: 10px;">
+            <span class="joint-label">Vortex G</span>
+            <input type="range" class="joint-slider" min={0} max={100} step={1} bind:value={vortexStrength} oninput={() => { if (activeSimModel?.fluidField) activeSimModel.fluidField.config.circulationGamma = vortexStrength; }} />
+            <span class="joint-value">{vortexStrength}</span>
+          </div>
+        </div>
+
         <div class="ctrl-section">
           <span class="ctrl-section-label">Drone Telemetry</span>
           <div class="joint-row">

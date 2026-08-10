@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { WindFluidField } from '../physics/WindFluidField';
+import { FluidStreamlines } from './FluidStreamlines';
 
 export type TurbineType = "VAWT" | "GE_Haliade_X";
 
@@ -105,6 +107,11 @@ export class WindTurbine {
   targetExplodeFactor: number = 0.0;
   currentExplodeFactor: number = 0.0;
 
+  public fluidField: WindFluidField;
+  public streamlines: FluidStreamlines;
+  public fluidCoupled: boolean = true;
+  private lastTime: number = performance.now();
+
   public rotorJoint: THREE.Group | null = null;
 
   constructor(type: string) {
@@ -119,6 +126,10 @@ export class WindTurbine {
 
     this.rootGroup = new THREE.Group();
     this.group.add(this.rootGroup);
+
+    this.fluidField = new WindFluidField();
+    this.streamlines = new FluidStreamlines(this.fluidField);
+    this.group.add(this.streamlines.group);
 
     const defKey: TurbineType = (type in TURBINE_DEFS) ? type as TurbineType : "VAWT";
     this.rotorAxis = TURBINE_DEFS[defKey].rotorAxis;
@@ -267,6 +278,24 @@ export class WindTurbine {
   private startAnimation() {
     const animate = () => {
       if (!this.group.parent) return;
+
+      const now = performance.now();
+      const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+      const timeSeconds = now / 1000;
+      this.lastTime = now;
+
+      // Update fluid streamlines GPU particles
+      if (this.streamlines) {
+        this.streamlines.update(dt, timeSeconds);
+      }
+
+      // Fluid dynamics coupling: calculate wind speed at hub height (0, 2.5, 0)
+      if (this.fluidCoupled && this.fluidField) {
+        const localWindSpeed = this.fluidField.getSpeedAt(0, 2.5, 0, timeSeconds);
+        // Aerodynamic power coefficient curve conversion to target RPM (max 60 RPM)
+        const aeroTargetRPM = Math.min(60, localWindSpeed * 3.5);
+        this.targetRPM = aeroTargetRPM;
+      }
 
       // Smooth RPM acceleration / deceleration (rigid body inertia)
       this.currentRPM += (this.targetRPM - this.currentRPM) * 0.05;
