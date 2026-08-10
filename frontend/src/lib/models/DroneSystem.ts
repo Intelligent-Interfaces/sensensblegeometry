@@ -121,7 +121,10 @@ export class DroneSystem {
 
       // Update fluid streamlines GPU particles
       if (this.streamlines) {
-        this.streamlines.update(dt, time);
+        this.streamlines.group.visible = this.fluidCoupled;
+        if (this.fluidCoupled) {
+          this.streamlines.update(dt, time);
+        }
       }
 
       // Flocking & Aerodynamic Swarm logic

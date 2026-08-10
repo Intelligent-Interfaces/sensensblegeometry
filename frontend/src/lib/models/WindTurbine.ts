@@ -286,7 +286,10 @@ export class WindTurbine {
 
       // Update fluid streamlines GPU particles
       if (this.streamlines) {
-        this.streamlines.update(dt, timeSeconds);
+        this.streamlines.group.visible = this.fluidCoupled;
+        if (this.fluidCoupled) {
+          this.streamlines.update(dt, timeSeconds);
+        }
       }
 
       // Fluid dynamics coupling: calculate wind speed at hub height (0, 2.5, 0)
