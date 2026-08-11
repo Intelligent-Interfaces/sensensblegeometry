@@ -124,48 +124,10 @@
     return lines.join('\n');
   }
 
-  function generateVHDL(layers: NetworkLayer[]): string {
-    return `-- VHDL Skeleton: Clifford-LTC Network (Geometric NC Export)
--- Target: FPGA Neuromorphic Hardware
--- Precision: Fixed-Point Q8.8
+  import { generateVHDLMultivectorMultiplier } from '../physics/VHDLExporter';
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-
-entity CliffordLTC is
-    generic (
-        NUM_LAYERS  : integer := ${layers.length};
-        MV_DIM      : integer := 8;   -- Cl(3,0) multivector dimension
-        FIXED_BITS  : integer := 16   -- Q8.8 fixed-point
-    );
-    port (
-        clk        : in  STD_LOGIC;
-        rst        : in  STD_LOGIC;
-        wind_mv_in : in  STD_LOGIC_VECTOR(MV_DIM * FIXED_BITS - 1 downto 0);
-        ctrl_out   : out STD_LOGIC_VECTOR(MV_DIM * FIXED_BITS - 1 downto 0)
-    );
-end CliffordLTC;
-
-architecture Behavioral of CliffordLTC is
-${layers.filter(l => l.type === 'ltc_recurrent').map((l, i) =>
-  `    signal hidden_${i} : STD_LOGIC_VECTOR(${l.nodes} * MV_DIM * FIXED_BITS - 1 downto 0);`
-).join('\n')}
-begin
-    process(clk)
-    begin
-        if rising_edge(clk) then
-            if rst = '1' then
-                ${layers.filter(l => l.type === 'ltc_recurrent').map((_,i) => `hidden_${i} <= (others => '0');`).join(' ')}
-            else
-                -- Fused ODE Euler step per LTC layer
-                -- Implementation: Clifford geometric product via LUT or DSP blocks
-                null;  -- TODO: Full geometric product pipeline
-            end if;
-        end if;
-    end process;
-end Behavioral;
-`;
+  function generateVHDL(_layers: NetworkLayer[]): string {
+    return generateVHDLMultivectorMultiplier();
   }
 
   function generateSchema(layers: NetworkLayer[]): string {

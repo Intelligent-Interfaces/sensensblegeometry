@@ -46,3 +46,6 @@ __pycache__/
 *.fls
 *.fdb_latexmk
 
+
+# Research
+research/experiments/

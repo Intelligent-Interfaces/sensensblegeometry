@@ -8,11 +8,14 @@
   import GNCModelBuilder from './GNCModelBuilder.svelte';
   import GNCTrainingPanel from './GNCTrainingPanel.svelte';
   import GNCCodeInspector from './GNCCodeInspector.svelte';
+  import StandardVsGeometric from './StandardVsGeometric.svelte';
   import { domainState } from '../domainState.svelte';
 
   type Layout = 'split' | 'floating';
+  type View = 'studio' | 'benchmark';
 
   let layout = $state<Layout>('split');
+  let activeView = $state<View>('studio');
   let showInspector = $state(false);
   let modelLayers = $state<any[]>([]);
   let trainingState = $state<any>({});
@@ -54,11 +57,19 @@
     </div>
     <div class="toolbar-center">
       <div class="layout-toggle">
-        <button class="layout-btn" class:active={layout === 'split'} onclick={() => layout = 'split'}
-          title="Split Screen">Split</button>
-        <button class="layout-btn" class:active={layout === 'floating'} onclick={() => layout = 'floating'}
-          title="Floating 3D">Floating</button>
+        <button class="layout-btn" class:active={activeView === 'studio'} onclick={() => activeView = 'studio'}
+          title="Studio & 3D Simulation">Studio</button>
+        <button class="layout-btn" class:active={activeView === 'benchmark'} onclick={() => activeView = 'benchmark'}
+          title="Equivariance Cost Benchmark">Benchmark</button>
       </div>
+      {#if activeView === 'studio'}
+        <div class="layout-toggle">
+          <button class="layout-btn" class:active={layout === 'split'} onclick={() => layout = 'split'}
+            title="Split Screen">Split</button>
+          <button class="layout-btn" class:active={layout === 'floating'} onclick={() => layout = 'floating'}
+            title="Floating 3D">Floating</button>
+        </div>
+      {/if}
     </div>
     <div class="toolbar-right">
       <button
@@ -76,46 +87,45 @@
   </div>
 
   <!-- Main Body -->
-  <div class="studio-body">
-
-    <!-- Left Panel: Model Builder + Training -->
-    <div class="studio-left">
-      <div class="studio-section builder-section">
-        <GNCModelBuilder onModelChange={handleModelChange} />
-      </div>
-      <div class="studio-divider"></div>
-      <div class="studio-section training-section">
-        <GNCTrainingPanel onTrainingTick={handleTrainingTick} />
-      </div>
+  {#if activeView === 'benchmark'}
+    <div class="studio-body benchmark-view-body">
+      <StandardVsGeometric />
     </div>
-
-    <!-- Right Panel: 3D Canvas (split mode only) or slot reference -->
-    {#if layout === 'split'}
-      <div class="studio-right">
-        <div class="canvas-header">
-          <span class="canvas-header-label">3D Embodied Simulation</span>
-          {#if bindTo3D}
-            <span class="bound-indicator">Live</span>
-          {/if}
+  {:else}
+    <div class="studio-body">
+      <!-- Left Panel: Model Builder + Training -->
+      <div class="studio-left">
+        <div class="studio-section builder-section">
+          <GNCModelBuilder onModelChange={handleModelChange} />
         </div>
-        <div class="canvas-area">
-          {@render canvasSlot?.()}
-          {#if !canvasSlot}
-            <div class="canvas-placeholder">
-              <p>3D Scene</p>
-              <span>Bind model and switch to Geometric NC domain to see the live simulation.</span>
-            </div>
-          {/if}
+        <div class="studio-divider"></div>
+        <div class="studio-section training-section">
+          <GNCTrainingPanel onTrainingTick={handleTrainingTick} />
         </div>
       </div>
-    {:else}
-      <!-- Floating 3D button -->
-      <button class="floating-3d-hint" onclick={() => window.dispatchEvent(new CustomEvent('gnc:open-float-3d'))}>
-        Open 3D View
-      </button>
-    {/if}
 
-  </div>
+      <!-- Right Panel: 3D Canvas (split mode only) or slot reference -->
+      {#if layout === 'split'}
+        <div class="studio-right">
+          <div class="canvas-header">
+            <span class="canvas-header-label">3D Embodied Simulation</span>
+            {#if bindTo3D}
+              <span class="bound-indicator">Live</span>
+            {/if}
+          </div>
+          <div class="canvas-area">
+            {@render canvasSlot?.()}
+            {#if !canvasSlot}
+              <div class="canvas-placeholder">
+                <p>3D Scene</p>
+                <span>Bind model and switch to Geometric NC domain to see the live simulation.</span>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   <!-- Code Inspector Overlay -->
   {#if showInspector}
@@ -314,19 +324,6 @@
   /* ── Floating mode ── */
   .layout-floating .studio-body {
     flex-direction: column;
-  }
-
-  .floating-3d-hint {
-    margin: 12px;
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: 1px dashed var(--card-border);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    cursor: pointer;
-    font-family: inherit;
-    align-self: flex-start;
   }
 
   /* ── Inspector Overlay ── */

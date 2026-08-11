@@ -15,13 +15,24 @@
     dtStep: number;
   }
 
+  import { Multivector } from 'engine';
+  import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+
   let { onTrainingTick = (_state: TrainingState) => {} } = $props();
 
   let isRunning = $state(false);
   let mode = $state<'training' | 'inference'>('training');
   let epoch = $state(0);
-  let lr = $state(0.001);
+  let lr = $state(0.01);
   let dtStep = $state(0.016);
+
+  // Real Clifford Liquid Network (4 nodes, 2 inputs per node)
+  let network = new CliffordLiquidNetwork(4, 2);
+  const sampleInputs = [
+    Multivector.vector(4.0, 2.0, 0.5),
+    Multivector.vector(1.0, -1.0, 2.0)
+  ];
+  const targetVector = Multivector.vector(0.0, 1.0, 0.0);
 
   // Rolling loss history for plotting
   const HISTORY_LEN = 120;
@@ -32,21 +43,24 @@
   let intervalId: ReturnType<typeof setInterval> | null = null;
   let canvas: HTMLCanvasElement;
 
-  function simulateLoss(epoch: number): number {
-    // Simulated decaying loss curve with noise
-    const base = Math.max(0.01, 1.2 * Math.exp(-epoch * 0.04));
-    return base + (Math.random() - 0.5) * base * 0.3;
-  }
-
-  function simulateEquivError(epoch: number): number {
-    return Math.max(0.001, 0.5 * Math.exp(-epoch * 0.06)) + Math.random() * 0.01;
-  }
-
   function tick() {
     epoch++;
-    const loss = simulateLoss(epoch);
-    const equivError = simulateEquivError(epoch);
-    const strain = 0.3 + Math.sin(epoch * 0.1) * 0.1 + Math.random() * 0.05;
+    
+    let loss: number;
+    let equivError: number;
+    let strain: number;
+
+    if (mode === 'training') {
+      const res = network.trainStep(sampleInputs, targetVector, lr, dtStep, 0.1);
+      loss = res.loss;
+      equivError = res.vecError;
+      strain = res.strainError;
+    } else {
+      const res = network.computeLoss(sampleInputs, targetVector, 0.1, dtStep);
+      loss = res.loss;
+      equivError = res.vecError;
+      strain = res.strainError;
+    }
 
     if (lossHistory.length >= HISTORY_LEN) lossHistory.shift();
     if (equivHistory.length >= HISTORY_LEN) equivHistory.shift();
@@ -116,6 +130,7 @@
   function resetTraining() {
     pauseTraining();
     epoch = 0;
+    network = new CliffordLiquidNetwork(4, 2);
     lossHistory = [];
     equivHistory = [];
     strainHistory = [];
