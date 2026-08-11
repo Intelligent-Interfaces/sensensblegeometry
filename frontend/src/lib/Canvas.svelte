@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import init, { Multivector, SimulationState } from 'engine';
   import * as THREE from 'three';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -34,6 +34,7 @@
   // Domain state tracking
   let activeSimModel: any = $state();
   let resizeObserver: ResizeObserver;
+  let isMounted = true;
 
   // Joint control state
   let jointAngles: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
@@ -164,6 +165,7 @@
 
     // ── Render loop ──
     const animate = () => {
+      if (!isMounted) return;
       animationFrameId = requestAnimationFrame(animate);
       
       // Camera Tracking Logic
@@ -186,64 +188,72 @@
       });
 
       if (simState) {
-        const count = simState.object_count();
-        for (let i = 0; i < count; i++) {
-          const obj = simState.get_object(i);
+        try {
+          const count = simState.object_count();
+          for (let i = 0; i < count; i++) {
+            const obj = simState.get_object(i);
 
-          const vx = obj.get_vector_x();
-          const vy = obj.get_vector_y();
-          const vz = obj.get_vector_z();
+            const vx = obj.get_vector_x();
+            const vy = obj.get_vector_y();
+            const vz = obj.get_vector_z();
 
-          // 1. Vectors (1D Arrows)
-          const hasVec = Math.abs(vx) > 0.001 || Math.abs(vy) > 0.001 || Math.abs(vz) > 0.001;
-          const showVec = (blades.e1 && Math.abs(vx) > 0.001)
-                       || (blades.e2 && Math.abs(vy) > 0.001)
-                       || (blades.e3 && Math.abs(vz) > 0.001);
+            // 1. Vectors (1D Arrows)
+            const hasVec = Math.abs(vx) > 0.001 || Math.abs(vy) > 0.001 || Math.abs(vz) > 0.001;
+            const showVec = (blades.e1 && Math.abs(vx) > 0.001)
+                         || (blades.e2 && Math.abs(vy) > 0.001)
+                         || (blades.e3 && Math.abs(vz) > 0.001);
 
-          if (hasVec && showVec) {
-            const maskedVec = new THREE.Vector3(
-              blades.e1 ? vx : 0,
-              blades.e2 ? vy : 0,
-              blades.e3 ? vz : 0
-            );
-            if (maskedVec.length() > 0.001) {
-              const length = maskedVec.length();
-              maskedVec.normalize();
-              const colors = [0x0284c7, 0x0369a1, 0x38bdf8];
-              const arrow = new THREE.ArrowHelper(maskedVec, new THREE.Vector3(0, 0, 0), length, colors[i % 3], 0.15, 0.08);
-              scene.add(arrow);
+            if (hasVec && showVec) {
+              const maskedVec = new THREE.Vector3(
+                blades.e1 ? vx : 0,
+                blades.e2 ? vy : 0,
+                blades.e3 ? vz : 0
+              );
+              if (maskedVec.length() > 0.001) {
+                const length = maskedVec.length();
+                maskedVec.normalize();
+                const colors = [0x0284c7, 0x0369a1, 0x38bdf8];
+                const arrow = new THREE.ArrowHelper(maskedVec, new THREE.Vector3(0, 0, 0), length, colors[i % 3], 0.15, 0.08);
+                scene.add(arrow);
+              }
             }
+
+            // 2. Bivectors (Oriented 2D Areas)
+            const bxy = blades.e12 ? obj.get_bivector_xy() : 0;
+            const byz = blades.e23 ? obj.get_bivector_yz() : 0;
+            const bzx = blades.e31 ? obj.get_bivector_zx() : 0;
+
+            if (Math.abs(bxy) > 0.001 || Math.abs(byz) > 0.001 || Math.abs(bzx) > 0.001) {
+              const normal = new THREE.Vector3(byz, bzx, bxy);
+              const area = normal.length();
+              normal.normalize();
+              const radius = Math.sqrt(area / Math.PI);
+
+              const geo = new THREE.RingGeometry(radius * 0.15, radius, 32);
+              const mat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+              const ring = new THREE.Mesh(geo, mat);
+              ring.lookAt(normal);
+              ring.userData = { isMathObject: true };
+              scene.add(ring);
+            }
+
+            // 3. Trivectors (3D Volumes)
+            const tv = blades.e123 ? obj.get_trivector() : 0;
+            if (Math.abs(tv) > 0.001) {
+              const radius = Math.cbrt((Math.abs(tv) * 3) / (4 * Math.PI));
+              const geo = new THREE.SphereGeometry(radius, 32, 16);
+              const mat = new THREE.MeshBasicMaterial({ color: 0xea580c, transparent: true, opacity: 0.25 });
+              const sphere = new THREE.Mesh(geo, mat);
+              sphere.userData = { isMathObject: true };
+              scene.add(sphere);
+            }
+            
+            // Free the WASM object to prevent memory leaks
+            obj.free();
           }
-
-          // 2. Bivectors (Oriented 2D Areas)
-          const bxy = blades.e12 ? obj.get_bivector_xy() : 0;
-          const byz = blades.e23 ? obj.get_bivector_yz() : 0;
-          const bzx = blades.e31 ? obj.get_bivector_zx() : 0;
-
-          if (Math.abs(bxy) > 0.001 || Math.abs(byz) > 0.001 || Math.abs(bzx) > 0.001) {
-            const normal = new THREE.Vector3(byz, bzx, bxy);
-            const area = normal.length();
-            normal.normalize();
-            const radius = Math.sqrt(area / Math.PI);
-
-            const geo = new THREE.RingGeometry(radius * 0.15, radius, 32);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
-            const ring = new THREE.Mesh(geo, mat);
-            ring.lookAt(normal);
-            ring.userData = { isMathObject: true };
-            scene.add(ring);
-          }
-
-          // 3. Trivectors (3D Volumes)
-          const tv = blades.e123 ? obj.get_trivector() : 0;
-          if (Math.abs(tv) > 0.001) {
-            const radius = Math.cbrt((Math.abs(tv) * 3) / (4 * Math.PI));
-            const geo = new THREE.SphereGeometry(radius, 32, 16);
-            const mat = new THREE.MeshBasicMaterial({ color: 0xea580c, transparent: true, opacity: 0.25 });
-            const sphere = new THREE.Mesh(geo, mat);
-            sphere.userData = { isMathObject: true };
-            scene.add(sphere);
-          }
+        } catch (e) {
+          // Guard against access to freed WASM memory
+          console.warn('Simulation state accessed after disposal:', e);
         }
       }
 
@@ -266,9 +276,15 @@
   });
 
   onDestroy(() => {
-    cancelAnimationFrame(animationFrameId);
+    isMounted = false;
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
     if (renderer) renderer.dispose();
-    if (simState) simState.free();
+    if (simState) {
+      try {
+        simState.free();
+      } catch (_) {}
+      simState = null as any;
+    }
     if (resizeObserver) resizeObserver.disconnect();
   });
 
@@ -281,10 +297,15 @@
     };
     window.addEventListener('themechanged', handleThemeChange as EventListener);
 
-    // Watch domain changes
-    if (activeSimModel?.type !== domainState.activeModelId) {
-      swapModel(domainState.activeModelId);
-    }
+    // Track domain + model reactively; read activeSimModel without tracking it
+    const targetDomain = domainState.activeDomain;
+    const targetModelId = domainState.activeModelId;
+    untrack(() => {
+      if (activeSimModel?.type !== targetModelId || (activeSimModel as any)?._domain !== targetDomain) {
+        swapModel(targetModelId);
+        if (activeSimModel) (activeSimModel as any)._domain = targetDomain;
+      }
+    });
 
     return () => window.removeEventListener('themechanged', handleThemeChange as EventListener);
   });
@@ -316,6 +337,8 @@
       else if (type === 'inner') result = a.inner(b);
       
       if (result) simState.add_object(result);
+      a.free();
+      b.free();
     }
   };
 
@@ -325,6 +348,7 @@
       const a = simState.get_object(n - 1);
       const result = a.dual();
       simState.add_object(result);
+      a.free();
       tourState.reportAction('dual_clicked');
     }
   };

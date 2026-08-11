@@ -2,9 +2,9 @@ name: Sensensble Geometry CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "nc-deploy" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "nc-deploy" ]
 
 jobs:
   frontend:
@@ -31,6 +31,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
       - run: cd frontend && npm run check
+      - run: cd frontend && npm test
       - run: cd frontend && npm run build
 
   backend:

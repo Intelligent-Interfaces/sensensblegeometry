@@ -4,7 +4,6 @@
   import Notebook from './lib/Notebook.svelte';
   import GuidedTour from './lib/GuidedTour.svelte';
   import GNCStudio from './lib/components/GNCStudio.svelte';
-  import TwistPresentation from './lib/components/TwistPresentation.svelte';
   import { tourState } from './lib/tourState.svelte';
   import { domainState, DOMAINS, type DomainType } from './lib/domainState.svelte';
 
@@ -16,8 +15,7 @@
 
   const stages = [
     { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
-    { id: 2, label: 'Geometric NC', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' },
-    { id: 3, label: 'Twist Science Deck', katex: String.raw`\text{Twist Science}`, caption: 'Informing Device Resiliency Through Cyclogenesis — Story & Presentation.' },
+    { id: 2, label: 'Geometric NC', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' }
   ];
 
   function switchStage(id: number) {
@@ -134,10 +132,6 @@
 
     <section class="pane gnc-pane" class:hidden={activeStage !== 2}>
       <GNCStudio />
-    </section>
-
-    <section class="pane deck-pane" class:hidden={activeStage !== 3}>
-      <TwistPresentation />
     </section>
   </div>
 

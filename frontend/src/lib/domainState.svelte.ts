@@ -94,6 +94,7 @@ class DomainState {
 
   setActiveModel(modelId: string) {
     this.activeModels[this.activeDomain] = modelId;
+    this.activeModels = { ...this.activeModels }; // Force Svelte 5 deep reactivity update
   }
 }
 
