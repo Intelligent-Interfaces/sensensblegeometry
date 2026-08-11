@@ -15,8 +15,9 @@
     dtStep: number;
   }
 
-  import { Multivector } from 'engine';
+  import init, { Multivector } from 'engine';
   import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+  import { onMount, onDestroy } from 'svelte';
 
   let { onTrainingTick = (_state: TrainingState) => {} } = $props();
 
@@ -27,12 +28,20 @@
   let dtStep = $state(0.016);
 
   // Real Clifford Liquid Network (4 nodes, 2 inputs per node)
-  let network = new CliffordLiquidNetwork(4, 2);
-  const sampleInputs = [
-    Multivector.vector(4.0, 2.0, 0.5),
-    Multivector.vector(1.0, -1.0, 2.0)
-  ];
-  const targetVector = Multivector.vector(0.0, 1.0, 0.0);
+  let network: CliffordLiquidNetwork | null = $state(null);
+  let sampleInputs: Multivector[] = [];
+  let targetVector: Multivector | null = null;
+
+  onMount(() => {
+    init().then(() => {
+      network = new CliffordLiquidNetwork(4, 2);
+      sampleInputs = [
+        Multivector.vector(4.0, 2.0, 0.5),
+        Multivector.vector(1.0, -1.0, 2.0)
+      ];
+      targetVector = Multivector.vector(0.0, 1.0, 0.0);
+    });
+  });
 
   // Rolling loss history for plotting
   const HISTORY_LEN = 120;
@@ -44,6 +53,8 @@
   let canvas: HTMLCanvasElement;
 
   function tick() {
+    if (!network || !targetVector) return;
+
     epoch++;
     
     let loss: number;
@@ -130,12 +141,16 @@
   function resetTraining() {
     pauseTraining();
     epoch = 0;
-    network = new CliffordLiquidNetwork(4, 2);
+    if (network) network = new CliffordLiquidNetwork(4, 2);
     lossHistory = [];
     equivHistory = [];
     strainHistory = [];
     drawChart();
   }
+
+  onDestroy(() => {
+    pauseTraining();
+  });
 </script>
 
 <div class="training-panel">
