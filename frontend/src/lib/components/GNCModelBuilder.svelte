@@ -6,8 +6,10 @@
    * and live Multivector Sandbox Testers.
    */
   import { Multivector } from 'engine';
+  import { onMount } from 'svelte';
   import { GRADE_PHYSICAL_MAP, TASK_TEMPLATES, MATH_EXPLANATIONS, type TaskTemplate } from '../physics/CliffordPresets';
   import GNCFlowDiagram from './GNCFlowDiagram.svelte';
+  import { domainState, type DomainType } from '../domainState.svelte';
 
   interface NetworkLayer {
     id: string;
@@ -52,12 +54,32 @@
     }
   });
 
-  function applyTaskTemplate(template: TaskTemplate) {
+  const TARGET_TO_DOMAIN: Record<string, DomainType> = {
+    'DroneSwarm': 'DRONES',
+    'WindTurbine': 'WIND_TURBINES',
+    'MetaMaterial': 'GEOMETRIC_NC',
+    'KukaArm': 'ROBOTICS'
+  };
+
+  function applyTaskTemplate(template: TaskTemplate, syncDomain: boolean = true) {
     selectedTask = template.id;
     layers = template.layers.map(l => ({ ...l, id: crypto.randomUUID() }));
     selectedLayerIdx = null;
+    if (syncDomain) {
+      const targetDomain = TARGET_TO_DOMAIN[template.targetObject];
+      if (targetDomain) {
+        domainState.setActiveDomain(targetDomain);
+      }
+    }
     onModelChange(layers);
   }
+
+  onMount(() => {
+    const defaultTemplate = TASK_TEMPLATES.find(t => t.id === selectedTask) || TASK_TEMPLATES[0];
+    if (defaultTemplate) {
+      applyTaskTemplate(defaultTemplate, false);
+    }
+  });
 
   function addLayer() {
     const newLayer: NetworkLayer = {

@@ -31,6 +31,9 @@
   import { GeometricNCSystem } from './models/GeometricNCSystem';
   import { GCPExporter } from './physics/GCPExporter';
 
+  // Props
+  let { showDocbar = true } = $props();
+
   // Domain state tracking
   let activeSimModel: any = $state();
   let resizeObserver: ResizeObserver;
@@ -360,8 +363,9 @@
   <!-- Three.js mount point -->
   <div class="canvas-container" bind:this={canvasElement}></div>
   
-  <!-- Bottom: Model Switcher -->
-  <div class="robot-switcher">
+  <!-- Bottom: Model Switcher (Stage 1 only) -->
+  {#if showDocbar}
+    <div class="robot-switcher">
     
     <!-- Domain Selector -->
     <select 
@@ -766,6 +770,7 @@
       {/if}
     </div>
   {/if}
+  {/if}
 </div>
 
 <style>
@@ -784,7 +789,7 @@
   /* ── Bottom Switcher ── */
   .robot-switcher {
     position: absolute;
-    bottom: 20px;
+    bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;

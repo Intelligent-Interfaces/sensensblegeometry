@@ -7,15 +7,13 @@
   import { tourState } from './lib/tourState.svelte';
   import { domainState, DOMAINS, type DomainType } from './lib/domainState.svelte';
 
-  // Active stage tracking
+  // Single unified stage
   let activeStage = $state(1);
   let isDarkMode = $state(false);
-  
   let canvasComponent = $state<any>(null);
 
   const stages = [
-    { id: 1, label: 'Geometric Canvas', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k`, caption: 'Multivectors in Cl(3,0) span scalar, vector, bivector, and trivector grades.' },
-    { id: 2, label: 'Geometric NC', katex: String.raw`\hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Geometric neural network predicts physical properties from multivector state.' }
+    { id: 1, label: 'Geometric NC Studio', katex: String.raw`\mathbf{A} = \sum_{k} a_k e_k \quad \implies \quad \hat{y} = f_\theta(\mathbf{X}_{av})`, caption: 'Multivector geometric algebra coupled with Clifford liquid neural networks.' }
   ];
 
   function switchStage(id: number) {
@@ -126,13 +124,15 @@
   <div class="workspace">
     <GuidedTour />
     
-    <section class="pane canvas-pane" class:hidden={activeStage !== 1}>
-      <Canvas bind:this={canvasComponent} />
-    </section>
+    <!-- Persistent 3D Spatial Canvas Layer -->
+    <div class="canvas-layer-persistent">
+      <Canvas bind:this={canvasComponent} showDocbar={true} />
+    </div>
 
-    <section class="pane gnc-pane" class:hidden={activeStage !== 2}>
+    <!-- Unified Spatial GNC Studio Overlay -->
+    <div class="gnc-studio-overlay">
       <GNCStudio />
-    </section>
+    </div>
   </div>
 
   <!-- Bottom Drawer Notebook overlay -->
@@ -224,14 +224,16 @@
     position: relative;
   }
 
-  .pane {
+  .canvas-layer-persistent {
     position: absolute;
     inset: 0;
-    transition: opacity 0.25s ease;
+    z-index: 1;
   }
 
-  .pane.hidden {
-    opacity: 0;
+  .gnc-studio-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
     pointer-events: none;
   }
 
