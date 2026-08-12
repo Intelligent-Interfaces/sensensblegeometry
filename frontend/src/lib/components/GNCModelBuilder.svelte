@@ -33,6 +33,7 @@
   let popoversOpen = $state<boolean[]>([]);
   let activeStrategy = $state<string>('clifford_gnc');
   let activeSequence = $state<string>('pouring');
+  let activeDroneSequence = $state<string>('vortex_escape');
 
   const TARGET_TO_DOMAIN: Record<string, DomainType> = {
     'DroneSwarm': 'DRONES',
@@ -104,6 +105,11 @@
     activeSequence = sequence;
     window.dispatchEvent(new CustomEvent('gnc:sequence-change', { detail: { sequence } }));
   }
+
+  function setDroneSequence(sequence: string) {
+    activeDroneSequence = sequence;
+    window.dispatchEvent(new CustomEvent('gnc:sequence-change', { detail: { sequence } }));
+  }
 </script>
 
 <div class="model-builder-hud">
@@ -139,6 +145,27 @@
         </button>
       </div>
     </div>
+
+    <!-- Movement Sequence Bar for Drone Swarm Choreography -->
+    {#if selectedTask === 'drone_flocking'}
+    <div class="task-selector-bar" style="margin-top: 10px;">
+      <span class="hud-label">Swarm Choreography:</span>
+      <div class="task-pills">
+        <button class="task-pill" class:selected={activeDroneSequence === 'vortex_escape'} onclick={() => setDroneSequence('vortex_escape')}>
+          Vortex Breakout
+        </button>
+        <button class="task-pill" class:selected={activeDroneSequence === 'figure_eight'} onclick={() => setDroneSequence('figure_eight')}>
+          Figure-8 Loop
+        </button>
+        <button class="task-pill" class:selected={activeDroneSequence === 'heart_pulse'} onclick={() => setDroneSequence('heart_pulse')}>
+          Heart Pulse
+        </button>
+        <button class="task-pill" class:selected={activeDroneSequence === 'double_helix'} onclick={() => setDroneSequence('double_helix')}>
+          Double Helix
+        </button>
+      </div>
+    </div>
+    {/if}
 
     <!-- Movement Sequence Bar for Robotic Manipulators -->
     {#if selectedTask === 'kuka_iiwa_manipulation'}

@@ -1,13 +1,21 @@
 export type SequenceType = 'pouring' | 'swirl' | 'spiral' | 'agitation';
+export type DroneSequenceType = 'vortex_escape' | 'figure_eight' | 'heart_pulse' | 'double_helix';
 
 export interface TrajectoryPoint {
   angles: number[];
   phaseName: string;
 }
 
+export interface DroneOffsetTarget {
+  x: number;
+  y: number;
+  z: number;
+  phaseName: string;
+}
+
 /**
  * RobotTrajectories.ts
- * Implements multi-phase movement sequences for 6/7-DOF manipulators,
+ * Implements multi-phase movement sequences for 6/7-DOF manipulators and drone swarms,
  * derived from spatialmath / roboticstoolbox kinematics formulations.
  */
 export class RobotTrajectories {
@@ -149,6 +157,88 @@ export class RobotTrajectories {
       case 'spiral': return this.getSpiralTrajectory(time, dof);
       case 'agitation': return this.getAgitationTrajectory(time, dof);
       default: return this.getSwirlTrajectory(time, dof);
+    }
+  }
+}
+
+export class DroneTrajectories {
+  /**
+   * Synchronized Figure-8 Loop:
+   * Drones follow interlocking vertical figure-8 loops in formation.
+   */
+  static getFigureEightTrajectory(time: number, index: number, total: number): DroneOffsetTarget {
+    const scale = 2.5;
+    const phaseOffset = (index / total) * Math.PI * 2;
+    const t = time * 0.8 + phaseOffset;
+
+    const x = Math.sin(t) * scale;
+    const y = Math.sin(t * 2) * (scale * 0.4);
+    const z = Math.cos(t) * scale;
+
+    return { x, y, z, phaseName: 'Synchronized Figure-8 Loop' };
+  }
+
+  /**
+   * Heart Pulse Formation:
+   * Drones arrange into a 3D cardioid heart shape that expands and contracts.
+   */
+  static getHeartPulseTrajectory(time: number, index: number, total: number): DroneOffsetTarget {
+    const t = (index / total) * Math.PI * 2;
+    const pulse = 1.0 + Math.sin(time * 3.0) * 0.15; // Pulsating scale
+
+    // 2D Cardioid formula: x = 16 sin^3(t), y = 13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t)
+    const rawX = 16 * Math.pow(Math.sin(t), 3);
+    const rawY = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+
+    const x = (rawX / 16) * 2.0 * pulse;
+    const y = (rawY / 16) * 2.0 * pulse;
+    const z = Math.sin(time * 2.0 + index) * 0.5;
+
+    return { x, y, z, phaseName: 'Pulsating Heart Cardioid' };
+  }
+
+  /**
+   * Double Helix Orbit:
+   * Drones split into twin counter-rotating spiraling helix streams ascending & descending.
+   */
+  static getDoubleHelixTrajectory(time: number, index: number, total: number): DroneOffsetTarget {
+    const strand = index % 2 === 0 ? 1 : -1;
+    const heightSpread = ((index / total) - 0.5) * 3.0;
+    const omega = 1.5;
+    const radius = 1.8;
+
+    const t = time * omega + heightSpread * 2.0 * strand;
+
+    const x = Math.cos(t) * radius * strand;
+    const y = heightSpread + Math.sin(time * 0.5) * 0.3;
+    const z = Math.sin(t) * radius * strand;
+
+    return { x, y, z, phaseName: 'Counter-Rotating Double Helix' };
+  }
+
+  /**
+   * Vortex Escape & Formation Breakout:
+   * Swarm performs breakout maneuvers around cyclone perimeter.
+   */
+  static getVortexEscapeTrajectory(time: number, index: number, total: number): DroneOffsetTarget {
+    const angle = (index / total) * Math.PI * 2 + time * 0.5;
+    const burst = Math.sin(time * 1.2 + index) * 0.4;
+    const radius = 2.0 + burst;
+
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(time * 0.8 + index) * 0.5;
+    const z = Math.sin(angle) * radius;
+
+    return { x, y, z, phaseName: 'Cyclogenetic Vortex Breakout' };
+  }
+
+  static getTrajectory(type: DroneSequenceType, time: number, index: number, total: number): DroneOffsetTarget {
+    switch (type) {
+      case 'figure_eight': return this.getFigureEightTrajectory(time, index, total);
+      case 'heart_pulse': return this.getHeartPulseTrajectory(time, index, total);
+      case 'double_helix': return this.getDoubleHelixTrajectory(time, index, total);
+      case 'vortex_escape': return this.getVortexEscapeTrajectory(time, index, total);
+      default: return this.getVortexEscapeTrajectory(time, index, total);
     }
   }
 }

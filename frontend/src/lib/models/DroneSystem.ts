@@ -6,6 +6,8 @@ import { FluidStreamlines } from './FluidStreamlines';
 import { JSMultivector as Multivector, CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
 import type { StrategyType, DroneController, ControllerMetrics } from '../controllers/DroneController';
 import { NaivePIDController, StandardMLPController, CliffordGNCController } from '../controllers/DroneController';
+import type { DroneSequenceType } from '../physics/RobotTrajectories';
+import { DroneTrajectories } from '../physics/RobotTrajectories';
 
 interface DroneInstance {
   mesh: THREE.Group;
@@ -31,6 +33,8 @@ export class DroneSystem {
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
   public activeStrategy: StrategyType = 'clifford_gnc';
+  public activeSequence: DroneSequenceType = 'vortex_escape';
+  public activePhase: string = 'Cyclogenetic Vortex Breakout';
 
   private startTime = performance.now();
   private lastTime = performance.now();
@@ -129,6 +133,10 @@ export class DroneSystem {
     });
   }
 
+  setSequence(sequence: DroneSequenceType) {
+    this.activeSequence = sequence;
+  }
+
   getSwarmMetrics(): ControllerMetrics {
     if (this.drones.length === 0) return { trackingError: 0, cumulativeDeviation: 0, responseTime: 0, parameterCount: 0 };
     
@@ -184,10 +192,13 @@ export class DroneSystem {
         }
 
         // Target position for this specific drone
+        const traj = DroneTrajectories.getTrajectory(this.activeSequence, time, index, this.drones.length);
+        this.activePhase = traj.phaseName;
+
         const idealPos = new THREE.Vector3(
-          drone.targetOffset.x + Math.sin(time * 0.5 + index) * 0.5,
-          this.targetY + drone.targetOffset.y + Math.cos(time * 0.3 + index) * 0.3,
-          drone.targetOffset.z + Math.sin(time * 0.4 + index) * 0.5
+          traj.x,
+          this.targetY + traj.y,
+          traj.z
         );
 
         // Spring physics for smooth lagging movement
