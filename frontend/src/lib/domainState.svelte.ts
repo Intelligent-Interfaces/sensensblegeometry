@@ -1,4 +1,5 @@
 export type DomainType = 'ROBOTICS' | 'WIND_TURBINES' | 'CYCLOGENESIS' | 'DRONES' | 'UMBRELLAS' | 'DNA_STRUCTURES' | 'FLOWERS' | 'GEOMETRIC_NC';
+import type { ControllerMetrics } from './controllers/DroneController';
 
 export interface ModelSystem {
   id: string;
@@ -67,6 +68,7 @@ export const DOMAINS: Record<DomainType, { label: string; models: ModelSystem[] 
 
 class DomainState {
   activeDomain = $state<DomainType>('ROBOTICS');
+  liveMetrics = $state<ControllerMetrics | null>(null);
   
   // Keep track of the selected model per domain so switching back restores it
   activeModels = $state<Record<DomainType, string>>({

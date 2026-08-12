@@ -3,8 +3,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { WindFluidField } from '../physics/WindFluidField';
 import { FluidStreamlines } from './FluidStreamlines';
-import { Multivector } from 'engine';
-import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import { JSMultivector as Multivector, CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import type { TurbineController } from '../controllers/TurbineController';
+import { NaivePIDTurbineController, StandardMLPTurbineController, CliffordGNCTurbineController } from '../controllers/TurbineController';
+import type { StrategyType, ControllerMetrics } from '../controllers/DroneController';
 
 export type TurbineType = "VAWT" | "GE_Haliade_X";
 
@@ -112,6 +114,8 @@ export class WindTurbine {
   public fluidField: WindFluidField;
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
+  public activeStrategy: StrategyType = 'clifford_gnc';
+  public controller: TurbineController;
   public ltcNetwork: CliffordLiquidNetwork;
   private lastTime: number = performance.now();
 
@@ -138,6 +142,7 @@ export class WindTurbine {
     
     // GNC: 1 Node processing 1 Multivector input (Wind Vector)
     this.ltcNetwork = new CliffordLiquidNetwork(1, 1);
+    this.controller = new CliffordGNCTurbineController();
 
     const defKey: TurbineType = (type in TURBINE_DEFS) ? type as TurbineType : "VAWT";
     this.rotorAxis = TURBINE_DEFS[defKey].rotorAxis;
@@ -235,6 +240,20 @@ export class WindTurbine {
     this.targetExplodeFactor = Math.max(0, Math.min(1, factor));
   }
 
+  setStrategy(strategy: StrategyType) {
+    if (this.activeStrategy === strategy) return;
+    this.activeStrategy = strategy;
+    switch(strategy) {
+      case 'naive_pid': this.controller = new NaivePIDTurbineController(); break;
+      case 'standard_mlp': this.controller = new StandardMLPTurbineController(); break;
+      case 'clifford_gnc': this.controller = new CliffordGNCTurbineController(); break;
+    }
+  }
+
+  getSwarmMetrics(): ControllerMetrics {
+    return this.controller.getMetrics();
+  }
+
   assemble() { this.targetExplodeFactor = 0.0; }
 
   explode() { this.targetExplodeFactor = 1.0; }
@@ -285,7 +304,10 @@ export class WindTurbine {
 
   private startAnimation() {
     const animate = () => {
-      if (!this.group.parent) return;
+      if (!this.group.parent) {
+        requestAnimationFrame(animate);
+        return;
+      }
 
       const now = performance.now();
       const dt = Math.min((now - this.lastTime) / 1000, 0.1);
@@ -303,18 +325,14 @@ export class WindTurbine {
       // Fluid dynamics coupling: calculate wind speed at hub height (0, 2.5, 0)
       if (this.fluidCoupled && this.fluidField) {
         const windVel = this.fluidField.getVelocityAt(0, 2.5, 0, timeSeconds);
-        
-        // Geometric Neural Computing: Pass fluid velocity into Equivariant Clifford-LTC
-        const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
-        const ltcOut = this.ltcNetwork.forward([windMV], dt);
-        const outMV = ltcOut[0];
-        
-        // The LTC dynamically learns to map environmental cyclogenesis stress 
-        // into a scalar RPM target (feathering blades automatically under high wind)
-        // Base mapping + neural adaptation
         const localWindSpeed = windVel.length();
-        const aeroTargetRPM = Math.min(60, localWindSpeed * 3.5 + outMV.get_scalar() * 10.0);
+        const rpmError = this.currentRPM - 30.0;
+
+        const { pitchAdjustment, rpmDamping } = this.controller.computePitchCorrection(localWindSpeed, rpmError, dt);
+        
+        const aeroTargetRPM = Math.min(60, Math.max(0, localWindSpeed * 3.5 + pitchAdjustment * 5.0));
         this.targetRPM = aeroTargetRPM;
+        this.currentRPM *= rpmDamping;
       }
 
       // Smooth RPM acceleration / deceleration (rigid body inertia)

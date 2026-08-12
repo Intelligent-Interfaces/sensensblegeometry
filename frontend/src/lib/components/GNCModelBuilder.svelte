@@ -31,6 +31,8 @@
   let activeTemplate = $derived(TASK_TEMPLATES.find(t => t.id === selectedTask) || TASK_TEMPLATES[0]);
   let layers = $state<NetworkLayer[]>([]);
   let popoversOpen = $state<boolean[]>([]);
+  let activeStrategy = $state<string>('clifford_gnc');
+  let activeSequence = $state<string>('pouring');
 
   const TARGET_TO_DOMAIN: Record<string, DomainType> = {
     'DroneSwarm': 'DRONES',
@@ -92,6 +94,16 @@
       applyTaskTemplate(TASK_TEMPLATES[0]);
     }
   });
+
+  function setStrategy(strategy: string) {
+    activeStrategy = strategy;
+    window.dispatchEvent(new CustomEvent('gnc:strategy-change', { detail: { strategy } }));
+  }
+
+  function setSequence(sequence: string) {
+    activeSequence = sequence;
+    window.dispatchEvent(new CustomEvent('gnc:sequence-change', { detail: { sequence } }));
+  }
 </script>
 
 <div class="model-builder-hud">
@@ -111,6 +123,43 @@
         {/each}
       </div>
     </div>
+
+    <!-- Baseline Strategy Bar -->
+    <div class="task-selector-bar" style="margin-top: 10px;">
+      <span class="hud-label">Control Strategy:</span>
+      <div class="task-pills">
+        <button class="task-pill" class:selected={activeStrategy === 'naive_pid'} onclick={() => setStrategy('naive_pid')}>
+          Naive PID
+        </button>
+        <button class="task-pill" class:selected={activeStrategy === 'standard_mlp'} onclick={() => setStrategy('standard_mlp')}>
+          Standard MLP
+        </button>
+        <button class="task-pill" class:selected={activeStrategy === 'clifford_gnc'} onclick={() => setStrategy('clifford_gnc')}>
+          Clifford-Liquid GNC
+        </button>
+      </div>
+    </div>
+
+    <!-- Movement Sequence Bar for Robotic Manipulators -->
+    {#if selectedTask === 'kuka_iiwa_manipulation'}
+    <div class="task-selector-bar" style="margin-top: 10px;">
+      <span class="hud-label">Movement Sequence:</span>
+      <div class="task-pills">
+        <button class="task-pill" class:selected={activeSequence === 'pouring'} onclick={() => setSequence('pouring')}>
+          Pouring Sequence
+        </button>
+        <button class="task-pill" class:selected={activeSequence === 'swirl'} onclick={() => setSequence('swirl')}>
+          Orbital Swirl
+        </button>
+        <button class="task-pill" class:selected={activeSequence === 'spiral'} onclick={() => setSequence('spiral')}>
+          Spiral Path
+        </button>
+        <button class="task-pill" class:selected={activeSequence === 'agitation'} onclick={() => setSequence('agitation')}>
+          Torsional Agitation
+        </button>
+      </div>
+    </div>
+    {/if}
 
     <div class="article-body-row">
       <div class="article-image-thumb" style="background-image: url('{activeTemplate.imageUrl}')"></div>

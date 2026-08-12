@@ -168,9 +168,12 @@ export class CliffordLTCNode {
     public forward(inputsRaw: any[], dt: number): JSMultivector {
         const inputs = inputsRaw.map(i => JSMultivector.from(i));
         let coupling = this.bias;
-        for (let i = 0; i < inputs.length; i++) {
-            const w_I = this.weights[i].geometric_product(inputs[i]);
-            coupling = coupling.add(w_I);
+        const count = Math.min(inputs.length, this.weights.length);
+        for (let i = 0; i < count; i++) {
+            if (this.weights[i]) {
+                const w_I = this.weights[i].geometric_product(inputs[i]);
+                coupling = coupling.add(w_I);
+            }
         }
         
         const recurrent = this.state.geometric_product(JSMultivector.scalar(0.5));

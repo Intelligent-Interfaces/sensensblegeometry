@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import type { RobotArmController } from '../controllers/RobotArmController';
+import { NaivePIDRobotController, StandardMLPRobotController, CliffordGNCRobotController } from '../controllers/RobotArmController';
+import type { StrategyType, ControllerMetrics } from '../controllers/DroneController';
+import type { SequenceType } from '../physics/RobotTrajectories';
+import { RobotTrajectories } from '../physics/RobotTrajectories';
 
 export type RobotType = "KUKA_LBR_iiwa" | "Franka_Panda" | "UR5";
 
@@ -69,10 +74,16 @@ export class RobotArm {
   public loaded: boolean = false;
   public linkGroups: THREE.Object3D[] = [];
   public type: string;
+  public activeStrategy: StrategyType = 'clifford_gnc';
+  public activeSequence: SequenceType = 'pouring';
+  public activePhase: string = 'Phase 1: Vertical Lift';
+  public controller: RobotArmController;
 
   private loader: GLTFLoader;
   private jointDefs: JointDef[];
   private urdfRoot: THREE.Group;
+  private currentJointAngles: number[] = [0, 0, 0, 0, 0, 0, 0];
+  private lastTime: number = performance.now();
 
   constructor(robotType: RobotType = "KUKA_LBR_iiwa") {
     this.type = robotType;
@@ -92,7 +103,9 @@ export class RobotArm {
     this.urdfRoot.rotation.x = -Math.PI / 2;
     this.group.add(this.urdfRoot);
 
+    this.controller = new CliffordGNCRobotController(7);
     this.loadModel();
+    this.startAnimation();
   }
 
   private async loadModel() {
@@ -200,5 +213,53 @@ export class RobotArm {
     for (let i = 0; i < this.linkGroups.length; i++) {
       this.setLinkColor(i, hex);
     }
+  }
+
+  public setSequence(sequence: SequenceType) {
+    this.activeSequence = sequence;
+  }
+
+  public setStrategy(strategy: StrategyType) {
+    if (this.activeStrategy === strategy) return;
+    this.activeStrategy = strategy;
+    switch(strategy) {
+      case 'naive_pid': this.controller = new NaivePIDRobotController(); break;
+      case 'standard_mlp': this.controller = new StandardMLPRobotController(); break;
+      case 'clifford_gnc': this.controller = new CliffordGNCRobotController(7); break;
+    }
+  }
+
+  public getSwarmMetrics(): ControllerMetrics {
+    return this.controller.getMetrics();
+  }
+
+  private startAnimation() {
+    const animate = () => {
+      if (!this.group.parent) {
+        requestAnimationFrame(animate);
+        return;
+      }
+      const now = performance.now();
+      const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+      const time = now / 1000;
+      this.lastTime = now;
+
+      // Retrieve active operational sequence trajectory
+      const dof = this.jointDefs.length;
+      const trajectory = RobotTrajectories.getTrajectory(this.activeSequence, time, dof);
+      this.activePhase = trajectory.phaseName;
+
+      const torques = this.controller.computeJointTorques(trajectory.angles, this.currentJointAngles, dt);
+
+      // Integrate torques to update joint positions
+      for (let i = 0; i < this.currentJointAngles.length; i++) {
+        const dTorque = torques[i] || 0;
+        this.currentJointAngles[i] += dTorque * dt * 0.5;
+      }
+
+      this.setJointAngles(this.currentJointAngles);
+      requestAnimationFrame(animate);
+    };
+    animate();
   }
 }

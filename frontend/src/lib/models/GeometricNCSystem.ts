@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { Multivector } from 'engine';
-import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import { JSMultivector as Multivector, CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import type { MetaMaterialController } from '../controllers/MetaMaterialController';
+import { NaiveHookeanController, StandardMLPMetaMaterialController, CliffordGNCMetaMaterialController } from '../controllers/MetaMaterialController';
+import type { StrategyType, ControllerMetrics } from '../controllers/DroneController';
 import { WindFluidField } from '../physics/WindFluidField';
 import { FluidStreamlines } from './FluidStreamlines';
 
@@ -24,6 +26,8 @@ export class GeometricNCSystem {
     public fluidField: WindFluidField;
     public streamlines: FluidStreamlines;
     public fluidCoupled: boolean = true;
+    public activeStrategy: StrategyType = 'clifford_gnc';
+    public controller: MetaMaterialController;
     
     // Abstract Meta-Material Mesh
     private nodes: THREE.Mesh[] = [];
@@ -62,6 +66,7 @@ export class GeometricNCSystem {
         
         // Geometric Neural Computing: Network with N nodes (one for each lattice node)
         this.ltcNetwork = new CliffordLiquidNetwork(this.nodes.length, 1);
+        this.controller = new CliffordGNCMetaMaterialController(this.nodes.length);
         
         this.startAnimation();
     }
@@ -119,7 +124,10 @@ export class GeometricNCSystem {
     
     private startAnimation() {
         const animate = () => {
-            if (!this.group.parent) return;
+            if (!this.group.parent) {
+                requestAnimationFrame(animate);
+                return;
+            }
             const now = performance.now();
             const dt = Math.min((now - this.lastTime) / 1000, 0.1);
             const timeSeconds = now / 1000;
@@ -135,16 +143,23 @@ export class GeometricNCSystem {
             
             // Forward pass LTC Network
             if (this.fluidCoupled) {
+                const ltcOutputs = this.nodes.map((_, i) => {
+                    const windVel = this.fluidField.getVelocityAt(this.nodes[i].position.x, this.nodes[i].position.y + 2.0, this.nodes[i].position.z, timeSeconds);
+                    const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
+                    return this.ltcNetwork.nodes[i].forward([windMV], dt);
+                });
+
                 for (let i = 0; i < this.nodes.length; i++) {
                     const pos = this.nodes[i].position;
                     // Get local wind
                     const windVel = this.fluidField.getVelocityAt(pos.x, pos.y + 2.0, pos.z, timeSeconds);
                     
                     // Geometric Neural pass
-                    const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
-                    const ltcOut = this.ltcNetwork.nodes[i].forward([windMV], dt);
-                    
+                    const ltcOut = ltcOutputs[i];
                     totalTau += this.ltcNetwork.nodes[i].tau;
+                    
+                    const displacements = this.controller.computeLatticeDeformation(this.nodePositions, windVel, dt);
+                    const disp = displacements[i] || new THREE.Vector3();
                     
                     // Visual Density Logic
                     const isVisible = (i / this.nodes.length) <= this.visualDensity;
@@ -187,7 +202,7 @@ export class GeometricNCSystem {
                     
                     // Physics integration: Morph the material using the neural vector
                     this.nodeVelocities[i].add(windVel.clone().multiplyScalar(dt * 0.5));
-                    this.nodeVelocities[i].add(new THREE.Vector3(vx, vy, vz).multiplyScalar(dt * 2.0));
+                    this.nodeVelocities[i].add(disp.multiplyScalar(dt * 5.0));
                     
                     // Spring back to origin
                     const springForce = this.nodePositions[i].clone().sub(pos).multiplyScalar(5.0 * dt);
@@ -220,5 +235,19 @@ export class GeometricNCSystem {
             requestAnimationFrame(animate);
         };
         animate();
+    }
+
+    public setStrategy(strategy: StrategyType) {
+        if (this.activeStrategy === strategy) return;
+        this.activeStrategy = strategy;
+        switch(strategy) {
+            case 'naive_pid': this.controller = new NaiveHookeanController(); break;
+            case 'standard_mlp': this.controller = new StandardMLPMetaMaterialController(this.nodes.length); break;
+            case 'clifford_gnc': this.controller = new CliffordGNCMetaMaterialController(this.nodes.length); break;
+        }
+    }
+
+    public getSwarmMetrics(): ControllerMetrics {
+        return this.controller.getMetrics();
     }
 }

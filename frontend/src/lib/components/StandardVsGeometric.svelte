@@ -7,6 +7,12 @@
   import Tooltip from './ui/Tooltip.svelte';
   import RichText from './ui/RichText.svelte';
   import Katex from './ui/Katex.svelte';
+  import { domainState } from '../domainState.svelte';
+
+  let trackingError = $derived(domainState.liveMetrics ? domainState.liveMetrics.trackingError.toFixed(2) : '0.00');
+  let cumulativeDrift = $derived(domainState.liveMetrics ? domainState.liveMetrics.cumulativeDeviation.toFixed(1) : '0.0');
+  let responseTime = $derived(domainState.liveMetrics ? (domainState.liveMetrics.responseTime * 1000).toFixed(0) : '0');
+  let currentParams = $derived(domainState.liveMetrics ? domainState.liveMetrics.parameterCount : 0);
 
   let inputDim = $state(3);
   let outputDim = $state(8);
@@ -50,33 +56,33 @@
     </div>
   </div>
 
-  <!-- High-Level Summary -->
+  <!-- High-Level Live Summary -->
   <div class="bm-summary">
     <div class="stat-box">
-      <span class="stat-num highlight">{paramEfficiencyGain}%</span>
-      <span class="stat-label">Parameter Reduction</span>
+      <span class="stat-num highlight">{trackingError}m</span>
+      <span class="stat-label">Tracking Error</span>
     </div>
     <div class="stat-box">
-      <span class="stat-num highlight">{computeCostRatio}×</span>
-      <span class="stat-label">Faster Training</span>
+      <span class="stat-num warn">{cumulativeDrift}m·s</span>
+      <span class="stat-label">Cumulative Drift</span>
     </div>
     <div class="stat-box">
-      <span class="stat-num exact">Exact E(3)</span>
-      <span class="stat-label">Symmetry Guarantee</span>
+      <span class="stat-num exact">{responseTime}ms</span>
+      <span class="stat-label">Response Time</span>
     </div>
   </div>
 
   <div class="card-comparison">
     <div class="comp-card standard">
       <span class="card-tag">Standard MLP</span>
-      <div class="c-row"><span>Params:</span> <strong>{standardParams}</strong></div>
-      <div class="c-row"><span>Effective Samples:</span> <strong>{standardEffectiveTrainingSamples.toLocaleString()}</strong></div>
+      <div class="c-row"><span>Params:</span> <strong>371</strong></div>
+      <div class="c-row"><span>Architecture:</span> <strong>3 &rarr; 16 &rarr; 16 &rarr; 3</strong></div>
     </div>
     <div class="vs-badge">VS</div>
-    <div class="comp-card geometric">
-      <span class="card-tag">Clifford Layer</span>
-      <div class="c-row"><span>Params:</span> <strong class="highlight">{cliffordParams}</strong></div>
-      <div class="c-row"><span>Effective Samples:</span> <strong class="highlight">{cliffordEffectiveTrainingSamples.toLocaleString()}</strong></div>
+    <div class="comp-card geometric" class:active-card={currentParams === 16}>
+      <span class="card-tag">Clifford Layer (Active)</span>
+      <div class="c-row"><span>Params:</span> <strong class="highlight">{currentParams}</strong></div>
+      <div class="c-row"><span>Architecture:</span> <strong class="highlight">Cl(3,0) &rarr; ODE</strong></div>
     </div>
   </div>
 

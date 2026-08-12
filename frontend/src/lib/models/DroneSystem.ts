@@ -3,8 +3,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { WindFluidField } from '../physics/WindFluidField';
 import { FluidStreamlines } from './FluidStreamlines';
-import { Multivector } from 'engine';
-import { CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import { JSMultivector as Multivector, CliffordLiquidNetwork } from '../physics/CliffordLiquidNetwork';
+import type { StrategyType, DroneController, ControllerMetrics } from '../controllers/DroneController';
+import { NaivePIDController, StandardMLPController, CliffordGNCController } from '../controllers/DroneController';
 
 interface DroneInstance {
   mesh: THREE.Group;
@@ -12,7 +13,7 @@ interface DroneInstance {
   targetOffset: THREE.Vector3;
   velocity: THREE.Vector3;
   lag: number;
-  ltcNetwork: CliffordLiquidNetwork;
+  controller: DroneController;
 }
 
 export class DroneSystem {
@@ -29,6 +30,7 @@ export class DroneSystem {
   public fluidField: WindFluidField;
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
+  public activeStrategy: StrategyType = 'clifford_gnc';
 
   private startTime = performance.now();
   private lastTime = performance.now();
@@ -99,7 +101,7 @@ export class DroneSystem {
           targetOffset: offset,
           velocity: new THREE.Vector3(),
           lag: 1.0 + Math.random() * 2.0, // Individual response lag
-          ltcNetwork: new CliffordLiquidNetwork(1, 1) // Geometric NC: 1 Node, 1 Input (Wind)
+          controller: new CliffordGNCController() // default
         });
       }
       
@@ -115,9 +117,50 @@ export class DroneSystem {
     this.rotSpeed = 0.1 + (throttle / 100) * 0.8;
   }
 
+  setStrategy(strategy: StrategyType) {
+    if (this.activeStrategy === strategy) return;
+    this.activeStrategy = strategy;
+    this.drones.forEach(drone => {
+      switch(strategy) {
+        case 'naive_pid': drone.controller = new NaivePIDController(); break;
+        case 'standard_mlp': drone.controller = new StandardMLPController(); break;
+        case 'clifford_gnc': drone.controller = new CliffordGNCController(); break;
+      }
+    });
+  }
+
+  getSwarmMetrics(): ControllerMetrics {
+    if (this.drones.length === 0) return { trackingError: 0, cumulativeDeviation: 0, responseTime: 0, parameterCount: 0 };
+    
+    // Average the metrics across the swarm
+    let totalError = 0;
+    let totalDev = 0;
+    let maxResponse = 0;
+    
+    this.drones.forEach(drone => {
+      const m = drone.controller.getMetrics();
+      totalError += m.trackingError;
+      totalDev += m.cumulativeDeviation;
+      if (m.responseTime > maxResponse) maxResponse = m.responseTime;
+    });
+    
+    const count = this.drones.length;
+    const baseMetrics = this.drones[0].controller.getMetrics();
+    
+    return {
+      trackingError: totalError / count,
+      cumulativeDeviation: totalDev / count,
+      responseTime: maxResponse,
+      parameterCount: baseMetrics.parameterCount
+    };
+  }
+
   private startAnimation() {
     const animate = () => {
-      if (!this.group.parent) return;
+      if (!this.group.parent) {
+        requestAnimationFrame(animate);
+        return;
+      }
       const now = performance.now();
       const dt = Math.min((now - this.lastTime) / 1000, 0.1);
       const time = (now - this.startTime) / 1000;
@@ -151,20 +194,15 @@ export class DroneSystem {
         const force = idealPos.clone().sub(drone.mesh.position).multiplyScalar(1.5 / drone.lag);
         drone.velocity.add(force.multiplyScalar(dt));
 
-        // Aerodynamic wind force coupling via Clifford-Liquid Neural Network
+        // Aerodynamic wind force coupling via controller
         if (this.fluidCoupled && this.fluidField) {
           const windVel = this.fluidField.getVelocityAt(drone.mesh.position.x, drone.mesh.position.y, drone.mesh.position.z, time);
           
-          // GNC: Pass wind disturbance into the equivariant Clifford LTC
-          const windMV = Multivector.vector(windVel.x, windVel.y, windVel.z);
-          const ltcOut = drone.ltcNetwork.forward([windMV], dt);
-          const outMV = ltcOut[0];
-          
-          // The embodied neural network outputs a continuous corrective force
-          const ltcCorrection = new THREE.Vector3(outMV.get_vector_x(), outMV.get_vector_y(), outMV.get_vector_z());
+          const posError = idealPos.clone().sub(drone.mesh.position);
+          const correction = drone.controller.computeCorrection(windVel.x, windVel.y, windVel.z, posError, dt);
           
           drone.velocity.add(windVel.clone().multiplyScalar(dt * 0.25)); // Environmental wind
-          drone.velocity.add(ltcCorrection.multiplyScalar(dt * 5.0)); // Intelligent active stabilization
+          drone.velocity.add(correction.multiplyScalar(dt * 5.0)); // Intelligent active stabilization
         }
 
         drone.velocity.multiplyScalar(0.92); // damping

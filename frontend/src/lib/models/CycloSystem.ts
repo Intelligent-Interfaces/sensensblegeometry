@@ -152,7 +152,10 @@ export class CycloSystem {
       requestAnimationFrame(animate);
       
       // Only update positions if actually in the scene
-      if (!this.group.parent) return;
+      if (!this.group.parent) {
+        requestAnimationFrame(animate);
+        return;
+      }
       
       const elapsed = (Date.now() - startTime) / 1000;
       this.pointsMaterial.uniforms.uTime.value = elapsed;
