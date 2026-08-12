@@ -31,6 +31,12 @@
   let editableCode = $state('');
   let activeTab = $state<'jax' | 'vhdl' | 'schema'>('jax');
   let copied = $state(false);
+  let isMaximized = $state(false);
+  let fontSize = $state(13);
+  let wordWrap = $state(false);
+
+  let lineCount = $derived(editableCode.split('\n').length);
+  let lineNumbers = $derived(Array.from({ length: lineCount }, (_, i) => i + 1));
 
   function gradesDim(grades: NetworkLayer['grades']): number {
     return (grades.scalar ? 1 : 0) + (grades.vector ? 3 : 0) + (grades.bivector ? 3 : 0) + (grades.trivector ? 1 : 0);
@@ -176,24 +182,61 @@
   }
 </script>
 
-<div class="inspector">
+<div class="inspector" class:maximized={isMaximized}>
   <div class="inspector-header">
     <span class="inspector-title">Code Inspector</span>
+    
     <div class="tab-row">
       <button class="tab-btn" class:active={activeTab === 'jax'}  onclick={() => activeTab = 'jax'}>JAX/Python</button>
       <button class="tab-btn" class:active={activeTab === 'vhdl'} onclick={() => activeTab = 'vhdl'}>VHDL</button>
       <button class="tab-btn" class:active={activeTab === 'schema'} onclick={() => activeTab = 'schema'}>Schema</button>
     </div>
-    <button class="close-btn" onclick={onClose}>×</button>
+
+    <!-- IDE Controls -->
+    <div class="editor-controls">
+      <button class="ctrl-btn" onclick={() => wordWrap = !wordWrap} class:active={wordWrap} title="Toggle Word Wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4M3 18h7M16 16l-2 2 2 2"/></svg>
+      </button>
+      <div class="zoom-controls">
+        <button class="ctrl-btn" onclick={() => fontSize = Math.max(10, fontSize - 1)} title="Decrease Font Size">-</button>
+        <span class="zoom-val">{fontSize}px</span>
+        <button class="ctrl-btn" onclick={() => fontSize = Math.min(20, fontSize + 1)} title="Increase Font Size">+</button>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" onclick={() => isMaximized = !isMaximized} title={isMaximized ? "Restore Size" : "Maximize IDE"}>
+        {#if isMaximized}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        {:else}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        {/if}
+      </button>
+      <button class="close-btn" onclick={onClose} title="Close Code Inspector">×</button>
+    </div>
   </div>
 
-  <textarea class="code-editor" spellcheck="false" bind:value={editableCode}></textarea>
+  <!-- IDE Code Body with Line Numbers -->
+  <div class="code-body">
+    <div class="line-gutter" style="font-size: {fontSize}px;">
+      {#each lineNumbers as num}
+        <span>{num}</span>
+      {/each}
+    </div>
+    <textarea 
+      class="code-editor" 
+      class:wrap={wordWrap}
+      spellcheck="false" 
+      bind:value={editableCode}
+      style="font-size: {fontSize}px;"
+    ></textarea>
+  </div>
 
   <div class="inspector-footer">
-    <span class="inspector-hint">Edit code before exporting</span>
+    <span class="inspector-hint">{lineCount} lines • Edit JAX/Python or VHDL code directly before exporting</span>
     <div class="footer-actions">
-      <button class="action-btn copy" onclick={copyToClipboard}>{copied ? 'Copied!' : 'Copy'}</button>
-      <button class="action-btn export" onclick={handleExport}>Download</button>
+      <button class="action-btn copy" onclick={copyToClipboard}>{copied ? 'Copied!' : 'Copy to Clipboard'}</button>
+      <button class="action-btn export" onclick={handleExport}>Download File</button>
     </div>
   </div>
 </div>
@@ -212,82 +255,179 @@
   .inspector-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 12px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--card-border);
+    background: var(--card-bg);
     flex-shrink: 0;
   }
 
   .inspector-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--accent-vis);
     flex-shrink: 0;
   }
 
   .tab-row {
     display: flex;
-    gap: 2px;
-    background: var(--card-border);
-    border-radius: 6px;
-    padding: 2px;
+    gap: 4px;
+    background: var(--panel-bg);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid var(--card-border);
   }
 
   .tab-btn {
-    padding: 3px 10px;
+    padding: 4px 12px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     background: transparent;
-    font-size: 0.67rem;
+    font-size: 0.7rem;
+    font-weight: 600;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: monospace;
+    font-family: var(--font-mono, monospace);
     transition: all 0.15s;
   }
-  .tab-btn.active { background: var(--panel-bg); color: var(--text-main); }
+  .tab-btn.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    font-weight: 700;
+  }
+
+  .editor-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--panel-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 2px 6px;
+  }
+  .zoom-val {
+    font-size: 0.65rem;
+    font-family: monospace;
+    color: var(--text-muted);
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ctrl-btn:hover { background: var(--card-border); color: var(--text-main); }
+  .ctrl-btn.active { background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3); }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .icon-btn {
+    background: var(--panel-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { color: var(--text-main); border-color: var(--accent-vis); }
 
   .close-btn {
-    margin-left: auto;
-    width: 22px; height: 22px;
+    width: 28px; height: 28px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     background: rgba(239,68,68,0.12);
     color: #ef4444;
-    font-size: 1rem;
+    font-size: 1.1rem;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .close-btn:hover { background: rgba(239,68,68,0.25); }
 
+  /* IDE Body */
+  .code-body {
+    flex: 1;
+    display: flex;
+    background: #090d16;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .line-gutter {
+    padding: 14px 10px 14px 14px;
+    background: #060911;
+    border-right: 1px solid #1e293b;
+    color: #475569;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    line-height: 1.6;
+    text-align: right;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .code-editor {
     flex: 1;
     width: 100%;
+    height: 100%;
     background: transparent;
     border: none;
     outline: none;
     resize: none;
     padding: 14px 16px;
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.68rem;
     line-height: 1.6;
-    color: var(--accent-green);
+    color: #38bdf8;
     tab-size: 4;
+    white-space: pre;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+  .code-editor.wrap {
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .inspector-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 14px;
+    padding: 10px 16px;
     border-top: 1px solid var(--card-border);
+    background: var(--card-bg);
     flex-shrink: 0;
   }
 
   .inspector-hint {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     font-family: monospace;
   }
@@ -295,24 +435,25 @@
   .footer-actions { display: flex; gap: 8px; }
 
   .action-btn {
-    padding: 5px 14px;
-    border-radius: 6px;
+    padding: 6px 16px;
+    border-radius: 8px;
     border: 1px solid;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
   }
   .action-btn.copy {
-    background: var(--card-bg);
+    background: var(--panel-bg);
     border-color: var(--card-border);
-    color: var(--text-muted);
+    color: var(--text-main);
   }
-  .action-btn.copy:hover { background: var(--panel-bg); color: var(--text-main); }
+  .action-btn.copy:hover { border-color: var(--accent-vis); }
   .action-btn.export {
-    background: rgba(124,58,237,0.3);
-    border-color: var(--accent-fuse);
-    color: var(--accent-fuse);
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981;
   }
-  .action-btn.export:hover { background: rgba(124,58,237,0.5); }
+  .action-btn.export:hover { background: rgba(16, 185, 129, 0.25); }
 </style>
