@@ -30,9 +30,33 @@
   import { FlowerSystem } from './models/FlowerSystem';
   import { GeometricNCSystem } from './models/GeometricNCSystem';
   import { GCPExporter } from './physics/GCPExporter';
+  import SyntheticDataSimulator from './components/SyntheticDataSimulator.svelte';
+  import { SyntheticDataStream, type SyntheticSample } from './physics/SyntheticDataStream';
 
   // Props
   let { showDocbar = true } = $props();
+
+  // Synthetic Data Streams for physical coupling
+  let turbineDataStream = new SyntheticDataStream('CYCLONIC_SHEAR');
+  let droneDataStream = new SyntheticDataStream('DRYDEN_GUST');
+
+  function handleTurbineSample(sample: SyntheticSample) {
+    if (activeSimModel && domainState.activeDomain === 'WIND_TURBINES') {
+      activeSimModel.syntheticSample = sample;
+    }
+  }
+
+  function handleDroneSample(sample: SyntheticSample) {
+    if (activeSimModel && domainState.activeDomain === 'DRONES') {
+      activeSimModel.syntheticSample = sample;
+    }
+  }
+
+  function handleStrategyUpdate(strat: any) {
+    if (activeSimModel && typeof activeSimModel.setStrategy === 'function') {
+      activeSimModel.setStrategy(strat);
+    }
+  }
 
   // Domain state tracking
   let activeSimModel: any = $state();
@@ -501,6 +525,16 @@
         </div>
       {:else if domainState.activeDomain === 'WIND_TURBINES'}
         <div class="ctrl-section">
+          <span class="ctrl-section-label">Synthetic Atmosphere</span>
+          <SyntheticDataSimulator
+            dataStream={turbineDataStream}
+            activeStrategy={activeSimModel?.activeStrategy || 'clifford_gnc'}
+            onStrategyChange={handleStrategyUpdate}
+            onSampleUpdate={handleTurbineSample}
+          />
+        </div>
+
+        <div class="ctrl-section">
           <span class="ctrl-section-label">Fluid Dynamics Coupling</span>
           <div class="joint-row">
             <label class="joint-label" style="width:auto; cursor:pointer;">Enable Aero: 
@@ -619,6 +653,16 @@
           </div>
         </div>
       {:else if domainState.activeDomain === 'DRONES'}
+        <div class="ctrl-section">
+          <span class="ctrl-section-label">Synthetic Atmosphere</span>
+          <SyntheticDataSimulator
+            dataStream={droneDataStream}
+            activeStrategy={activeSimModel?.activeStrategy || 'clifford_gnc'}
+            onStrategyChange={handleStrategyUpdate}
+            onSampleUpdate={handleDroneSample}
+          />
+        </div>
+
         <div class="ctrl-section">
           <span class="ctrl-section-label">Fluid Dynamics Coupling</span>
           <div class="joint-row">

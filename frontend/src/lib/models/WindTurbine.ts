@@ -7,6 +7,7 @@ import { JSMultivector as Multivector, CliffordLiquidNetwork } from '../physics/
 import type { TurbineController } from '../controllers/TurbineController';
 import { NaivePIDTurbineController, StandardMLPTurbineController, CliffordGNCTurbineController } from '../controllers/TurbineController';
 import type { StrategyType, ControllerMetrics } from '../controllers/DroneController';
+import type { SyntheticSample } from '../physics/SyntheticDataStream';
 
 export type TurbineType = "VAWT" | "GE_Haliade_X";
 
@@ -114,6 +115,7 @@ export class WindTurbine {
   public fluidField: WindFluidField;
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
+  public syntheticSample: SyntheticSample | null = null;
   public activeStrategy: StrategyType = 'clifford_gnc';
   public controller: TurbineController;
   public ltcNetwork: CliffordLiquidNetwork;
@@ -324,13 +326,17 @@ export class WindTurbine {
 
       // Fluid dynamics coupling: calculate wind speed at hub height (0, 2.5, 0)
       if (this.fluidCoupled && this.fluidField) {
-        const windVel = this.fluidField.getVelocityAt(0, 2.5, 0, timeSeconds);
+        let windVel = this.fluidField.getVelocityAt(0, 2.5, 0, timeSeconds);
+        if (this.syntheticSample) {
+          windVel = this.syntheticSample.wind;
+          this.fluidField.config.ambientWindSpeed = windVel.length();
+        }
         const localWindSpeed = windVel.length();
         const rpmError = this.currentRPM - 30.0;
 
         const { pitchAdjustment, rpmDamping } = this.controller.computePitchCorrection(localWindSpeed, rpmError, dt);
         
-        const aeroTargetRPM = Math.min(60, Math.max(0, localWindSpeed * 3.5 + pitchAdjustment * 5.0));
+        const aeroTargetRPM = Math.min(80, Math.max(0, localWindSpeed * 3.5 + pitchAdjustment * 5.0));
         this.targetRPM = aeroTargetRPM;
         this.currentRPM *= rpmDamping;
       }

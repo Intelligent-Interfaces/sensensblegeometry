@@ -8,6 +8,7 @@ import type { StrategyType, DroneController, ControllerMetrics } from '../contro
 import { NaivePIDController, StandardMLPController, CliffordGNCController } from '../controllers/DroneController';
 import type { DroneSequenceType } from '../physics/RobotTrajectories';
 import { DroneTrajectories } from '../physics/RobotTrajectories';
+import type { SyntheticSample } from '../physics/SyntheticDataStream';
 
 interface DroneInstance {
   mesh: THREE.Group;
@@ -32,6 +33,7 @@ export class DroneSystem {
   public fluidField: WindFluidField;
   public streamlines: FluidStreamlines;
   public fluidCoupled: boolean = true;
+  public syntheticSample: SyntheticSample | null = null;
   public activeStrategy: StrategyType = 'clifford_gnc';
   public activeSequence: DroneSequenceType = 'vortex_escape';
   public activePhase: string = 'Cyclogenetic Vortex Breakout';
@@ -207,7 +209,11 @@ export class DroneSystem {
 
         // Aerodynamic wind force coupling via controller
         if (this.fluidCoupled && this.fluidField) {
-          const windVel = this.fluidField.getVelocityAt(drone.mesh.position.x, drone.mesh.position.y, drone.mesh.position.z, time);
+          let windVel = this.fluidField.getVelocityAt(drone.mesh.position.x, drone.mesh.position.y, drone.mesh.position.z, time);
+          if (this.syntheticSample) {
+            windVel = this.syntheticSample.wind;
+            this.fluidField.config.ambientWindSpeed = windVel.length();
+          }
           
           const posError = idealPos.clone().sub(drone.mesh.position);
           const correction = drone.controller.computeCorrection(windVel.x, windVel.y, windVel.z, posError, dt);
