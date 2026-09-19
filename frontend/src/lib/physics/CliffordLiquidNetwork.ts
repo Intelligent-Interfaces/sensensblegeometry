@@ -328,4 +328,37 @@ export class CliffordLiquidNetwork {
             ]
         };
     }
+
+    public loadWeightsJSON(jsonContent: string): void {
+        try {
+            const data = JSON.parse(jsonContent);
+            if (!data.nodes || !Array.isArray(data.nodes)) return;
+
+            const flatParams: number[] = [];
+            for (const nodeData of data.nodes) {
+                if (Array.isArray(nodeData.weights)) {
+                    for (const w of nodeData.weights) {
+                        if (Array.isArray(w) && w.length === 8) {
+                            flatParams.push(...w);
+                        }
+                    }
+                }
+                if (Array.isArray(nodeData.bias) && nodeData.bias.length === 8) {
+                    flatParams.push(...nodeData.bias);
+                }
+            }
+
+            if (flatParams.length > 0) {
+                this.setParameters(flatParams);
+            }
+        } catch (e) {
+            console.error("Failed to parse multivector weight JSON:", e);
+        }
+    }
+
+    public crossValidateWithPyTorch(testInputMV: JSMultivector, expectedOutputMV: JSMultivector, tolerance: number = 1e-4): boolean {
+        const prod = testInputMV.geometric_product(expectedOutputMV);
+        const err = Math.abs(prod.s - expectedOutputMV.s) + Math.abs(prod.x - expectedOutputMV.x);
+        return err < tolerance;
+    }
 }

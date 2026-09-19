@@ -31,12 +31,11 @@ engine/target/
 # ML Copilot (Python)
 ml/venv/
 ml/env/
-ml/__pycache__/
-ml/*.py[cod]
-ml/*$py.class
 ml/.pytest_cache/
 backend/worker/venv/
-__pycache__/
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
 
 # LaTeX build artifacts
 *.aux
