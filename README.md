@@ -2,7 +2,7 @@
 
 <!-- rumdl-disable MD033 MD041 -->
 <div align="center">
-  <img src="assets/hero.png" alt="SensensibleGeometry Platform" width="720"></img>
+  <img src="assets/sense-crop.svg" alt="SensensibleGeometry" width="96"></img>
 </div>
 
 <div align="center">
